@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "1UP",
+  "outputfilename": "1up",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "1UP",
+    "email": ""
+  },
+  "info": {
+    "companyName": "1UP",
+    "productName": "1UP",
+    "productVersion": "1.3.2.0",
+    "copyright": "1UP",
+    "comments": "Usenet Poster"
+  }
+}

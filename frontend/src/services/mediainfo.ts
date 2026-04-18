@@ -1,0 +1,168 @@
+import MediaInfoFactory from 'mediainfo.js'
+import { GetFileSize, ReadFileChunk } from '../../wailsjs/go/main/App'
+
+export interface ParsedMediaInfo {
+  resolution: string
+  videoCodec: string
+  audioCodec: string
+  audioLanguages: string
+  subtitleLanguages: string
+  hdrFormat: string
+  duration: string
+  fileSize: number
+  width: number
+  height: number
+  bitrate: number
+  frameRate: number
+}
+
+async function analyzeFile(filePath: string): Promise<any> {
+  const fileSize = await GetFileSize(filePath)
+  const mi = await MediaInfoFactory({ format: 'object', locateFile: () => 'mediainfo.wasm' })
+
+  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
+    const b64 = await ReadFileChunk(filePath, offset, size)
+    const bin = atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    return arr
+  }
+
+  const result = await mi.analyzeData(() => fileSize, readChunk)
+  mi.close()
+  return result
+}
+
+const langNames: Record<string, string> = {
+  fr: 'Francais', fre: 'Francais', fra: 'Francais',
+  en: 'Anglais', eng: 'Anglais',
+  de: 'Allemand', ger: 'Allemand', deu: 'Allemand',
+  es: 'Espagnol', spa: 'Espagnol',
+  it: 'Italien', ita: 'Italien',
+  ja: 'Japonais', jpn: 'Japonais',
+}
+
+function normalizeLang(lang: string): string {
+  return langNames[lang?.toLowerCase()] ?? lang ?? ''
+}
+
+function detectResolution(w: number, h: number): string {
+  if (h >= 2160 || w >= 3840) return '2160p'
+  if (h >= 1080 || w >= 1920) return '1080p'
+  if (h >= 720 || w >= 1280) return '720p'
+  return 'SD'
+}
+
+function normalizeVideoCodec(format: string): string {
+  const f = format?.toLowerCase() ?? ''
+  if (f.includes('hevc') || f === 'h.265') return 'H.265'
+  if (f.includes('avc') || f === 'h.264') return 'H.264'
+  if (f === 'av1') return 'AV1'
+  return format ?? ''
+}
+
+function normalizeAudioCodec(format: string, profile: string, commercial: string): string {
+  const c = (commercial || '').toLowerCase()
+  if (c.includes('atmos')) return 'Atmos'
+  if (c.includes('truehd')) return 'TrueHD'
+  if (c.includes('dts-hd master')) return 'DTS-HD MA'
+  if (c.includes('dts-hd')) return 'DTS-HD'
+  if (c.includes('dolby digital plus')) return 'EAC3'
+  if (c.includes('dolby digital')) return 'AC3'
+  const f = (format || '').toUpperCase()
+  if (f === 'DTS') {
+    if (profile?.includes('MA')) return 'DTS-HD MA'
+    return 'DTS'
+  }
+  if (f === 'AC-3') return 'AC3'
+  if (f === 'E-AC-3') return 'EAC3'
+  if (f === 'AAC') return 'AAC'
+  if (f === 'FLAC') return 'FLAC'
+  return f
+}
+
+function detectHDR(video: any): string {
+  const hdr = (video.HDR_Format || '').toLowerCase()
+  const compat = (video.HDR_Format_Compatibility || '').toLowerCase()
+  const transfer = (video.transfer_characteristics || '').toLowerCase()
+  if (hdr.includes('dolby vision') && (hdr.includes('hdr10') || compat.includes('hdr10'))) return 'HDR DV'
+  if (hdr.includes('dolby vision')) return 'DV'
+  if (hdr.includes('hdr10+')) return 'HDR10+'
+  if (hdr.includes('smpte st 2086') || compat.includes('hdr10')) return 'HDR10'
+  if (transfer.includes('pq') || transfer.includes('smpte st 2084')) return 'HDR10'
+  if (transfer.includes('hlg')) return 'HLG'
+  return ''
+}
+
+export async function getMediaInfoJS(filePath: string): Promise<ParsedMediaInfo> {
+  const result = await analyzeFile(filePath)
+  const tracks: any[] = result?.media?.track ?? []
+
+  const general = tracks.find((t: any) => t['@type'] === 'General') ?? {}
+  const video = tracks.find((t: any) => t['@type'] === 'Video') ?? {}
+  const audioTracks = tracks.filter((t: any) => t['@type'] === 'Audio')
+  const textTracks = tracks.filter((t: any) => t['@type'] === 'Text')
+
+  const w = parseInt(video.Width ?? '0')
+  const h = parseInt(video.Height ?? '0')
+
+  let duration = ''
+  const dur = parseFloat(general.Duration ?? '0')
+  if (dur > 0) {
+    const hh = Math.floor(dur / 3600)
+    const mm = Math.floor((dur % 3600) / 60)
+    duration = `${hh}h ${String(mm).padStart(2, '0')}min`
+  }
+
+  const langs = new Set<string>()
+  for (const t of audioTracks) {
+    const lang = normalizeLang(t.Language ?? '')
+    if (lang) langs.add(lang)
+  }
+
+  const subs = new Set<string>()
+  for (const t of textTracks) {
+    const lang = normalizeLang(t.Language ?? '') || (t.Title ?? '')
+    if (!lang) continue
+    const forced = t.Forced === 'Yes' ? ' (force)' : ''
+    subs.add(lang + forced)
+  }
+
+  let audioCodec = ''
+  if (audioTracks.length > 0) {
+    const t = audioTracks[0]
+    audioCodec = normalizeAudioCodec(t.Format ?? '', t.Format_Profile ?? '', t.Format_Commercial_IfAny ?? '')
+  }
+
+  return {
+    resolution: detectResolution(w, h),
+    videoCodec: normalizeVideoCodec(video.Format ?? ''),
+    audioCodec,
+    audioLanguages: Array.from(langs).join(', '),
+    subtitleLanguages: Array.from(subs).join(', '),
+    hdrFormat: detectHDR(video),
+    duration,
+    fileSize: parseInt(general.FileSize ?? '0'),
+    width: w,
+    height: h,
+    bitrate: parseInt(general.OverallBitRate ?? '0'),
+    frameRate: Math.round(parseFloat(video.FrameRate ?? '0') * 100) / 100,
+  }
+}
+
+export async function getMediaInfoJSON(filePath: string): Promise<string> {
+  const fileSize = await GetFileSize(filePath)
+  const mi = await MediaInfoFactory({ format: 'JSON', full: true, locateFile: () => 'mediainfo.wasm' } as any)
+
+  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
+    const b64 = await ReadFileChunk(filePath, offset, size)
+    const bin = atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    return arr
+  }
+
+  const result = await mi.analyzeData(() => fileSize, readChunk)
+  mi.close()
+  return result as string
+}

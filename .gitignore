@@ -1,0 +1,11 @@
+build/bin
+node_modules
+frontend/dist
+*.exe
+*.dll
+*.so
+*.dylib
+.DS_Store
+
+.claude/
+.specstory/

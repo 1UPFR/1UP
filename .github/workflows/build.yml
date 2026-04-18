@@ -1,0 +1,312 @@
+name: Build 1UP
+
+on:
+  push:
+    tags: ['v*']
+
+env:
+  PARPAR_VERSION: "0.4.5"
+  NYUU_VERSION: "0.4.2-Obfuscate1.4"
+  MEDIAINFO_VERSION: "26.01"
+
+jobs:
+  build-macos:
+    name: Build macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            parpar_asset: parpar-v0.4.5-macos-x64.xz
+            nyuu_asset: nyuu-v0.4.2-Obfuscate1.4-mac-x64.txz
+            bindir: darwin-amd64
+          - arch: arm64
+            parpar_asset: parpar-v0.4.5-macos-x64.xz
+            nyuu_asset: nyuu-v0.4.2-Obfuscate1.4-mac-arm64.txz
+            bindir: darwin-arm64
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Download & extract ParPar
+        run: |
+          mkdir -p binaries/${{ matrix.bindir }}
+          curl -sL -o /tmp/${{ matrix.parpar_asset }} "https://github.com/animetosho/ParPar/releases/download/v${{ env.PARPAR_VERSION }}/${{ matrix.parpar_asset }}"
+          xz -d /tmp/${{ matrix.parpar_asset }}
+          mv /tmp/$(echo "${{ matrix.parpar_asset }}" | sed 's/\.xz$//') binaries/${{ matrix.bindir }}/parpar
+          chmod +x binaries/${{ matrix.bindir }}/parpar
+
+      - name: Download & extract Nyuu
+        run: |
+          curl -sL -o /tmp/${{ matrix.nyuu_asset }} "https://github.com/Antidote2151/Nyuu-Obfuscation/releases/download/v${{ env.NYUU_VERSION }}/${{ matrix.nyuu_asset }}"
+          tar -xf /tmp/${{ matrix.nyuu_asset }} -C binaries/${{ matrix.bindir }}/ nyuu
+          chmod +x binaries/${{ matrix.bindir }}/nyuu
+
+      - name: Build (macOS ${{ matrix.arch }})
+        run: wails build -platform darwin/${{ matrix.arch }} -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }}"
+
+      - name: Ad-hoc signing
+        run: |
+          codesign --force --deep --sign - build/bin/1UP.app
+          xattr -cr build/bin/1UP.app
+
+      - name: Package .app as zip
+        run: |
+          cd build/bin
+          zip -r 1UP-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip 1UP.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: 1UP-macos-${{ matrix.arch }}
+          path: build/bin/1UP-${{ github.ref_name }}-macos-${{ matrix.arch }}.zip
+
+  build-windows:
+    name: Build Windows (amd64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Download & extract ParPar + Nyuu
+        shell: bash
+        run: |
+          mkdir -p binaries/windows-amd64
+          curl -sL -o /tmp/parpar-v0.4.5-win64.7z "https://github.com/animetosho/ParPar/releases/download/v${{ env.PARPAR_VERSION }}/parpar-v0.4.5-win64.7z"
+          7z x /tmp/parpar-v0.4.5-win64.7z -o/tmp/parpar-extracted -y
+          find /tmp/parpar-extracted -name 'parpar.exe' -exec mv {} binaries/windows-amd64/parpar.exe \;
+          curl -sL -o /tmp/nyuu-v0.4.2-Obfuscate1.4-win64.7z "https://github.com/Antidote2151/Nyuu-Obfuscation/releases/download/v${{ env.NYUU_VERSION }}/nyuu-v0.4.2-Obfuscate1.4-win64.7z"
+          7z x /tmp/nyuu-v0.4.2-Obfuscate1.4-win64.7z -o/tmp/nyuu-extracted -y
+          find /tmp/nyuu-extracted -name 'nyuu.exe' -exec mv {} binaries/windows-amd64/nyuu.exe \;
+
+      - name: Build (Windows amd64)
+        run: wails build -platform windows/amd64 -o 1UP.exe -ldflags "-X main.appVersion=${{ github.ref_name }}"
+
+      - name: Rename exe with version
+        shell: pwsh
+        run: Copy-Item build/bin/1UP.exe "build/bin/1UP-${{ github.ref_name }}-windows-amd64.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: 1UP-windows-amd64
+          path: build/bin/1UP-${{ github.ref_name }}-windows-amd64.exe
+
+  build-linux:
+    name: Build Linux (amd64)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Download & extract ParPar
+        run: |
+          mkdir -p binaries/linux-amd64
+          curl -sL -o /tmp/parpar-v0.4.5-linux-static-amd64.xz "https://github.com/animetosho/ParPar/releases/download/v${{ env.PARPAR_VERSION }}/parpar-v0.4.5-linux-static-amd64.xz"
+          xz -d /tmp/parpar-v0.4.5-linux-static-amd64.xz
+          mv /tmp/parpar-v0.4.5-linux-static-amd64 binaries/linux-amd64/parpar
+          chmod +x binaries/linux-amd64/parpar
+
+      - name: Download & extract Nyuu
+        run: |
+          curl -sL -o /tmp/nyuu-v0.4.2-Obfuscate1.4-linux-amd64.tar.xz "https://github.com/Antidote2151/Nyuu-Obfuscation/releases/download/v${{ env.NYUU_VERSION }}/nyuu-v0.4.2-Obfuscate1.4-linux-amd64.tar.xz"
+          tar -xf /tmp/nyuu-v0.4.2-Obfuscate1.4-linux-amd64.tar.xz -C binaries/linux-amd64/ nyuu
+          chmod +x binaries/linux-amd64/nyuu
+
+      - name: Build (Linux amd64)
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          wails build -platform linux/amd64 -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }}"
+
+      - name: Package as tar.gz
+        run: |
+          cd build/bin
+          tar -czf 1UP-${{ github.ref_name }}-linux-amd64.tar.gz 1UP
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: 1UP-linux-amd64
+          path: build/bin/1UP-${{ github.ref_name }}-linux-amd64.tar.gz
+
+  build-cli:
+    name: Build CLI (linux-amd64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version: '1.26'
+
+      - name: Download & extract ParPar + Nyuu + MediaInfo
+        run: |
+          mkdir -p cmd/1up-cli/binaries
+          curl -fL -o /tmp/parpar.xz "https://github.com/animetosho/ParPar/releases/download/v${{ env.PARPAR_VERSION }}/parpar-v${{ env.PARPAR_VERSION }}-linux-static-amd64.xz"
+          xz -d /tmp/parpar.xz
+          mv /tmp/parpar cmd/1up-cli/binaries/parpar
+          chmod +x cmd/1up-cli/binaries/parpar
+          curl -fL -o /tmp/nyuu.tar.xz "https://github.com/Antidote2151/Nyuu-Obfuscation/releases/download/v${{ env.NYUU_VERSION }}/nyuu-v${{ env.NYUU_VERSION }}-linux-amd64.tar.xz"
+          tar -xf /tmp/nyuu.tar.xz -C cmd/1up-cli/binaries/ nyuu
+          chmod +x cmd/1up-cli/binaries/nyuu
+          curl -fL -o /tmp/mediainfo.zip "https://mediaarea.net/download/binary/mediainfo/${{ env.MEDIAINFO_VERSION }}/MediaInfo_CLI_${{ env.MEDIAINFO_VERSION }}_Lambda_x86_64.zip"
+          unzip -o /tmp/mediainfo.zip -d /tmp/mediainfo-extracted
+          mv /tmp/mediainfo-extracted/bin/mediainfo cmd/1up-cli/binaries/mediainfo
+          chmod +x cmd/1up-cli/binaries/mediainfo
+
+      - name: Build CLI
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          go build \
+            -ldflags "-X main.AppVersion=${{ github.ref_name }}" \
+            -o 1up-cli-${{ github.ref_name }}-linux-amd64 \
+            ./cmd/1up-cli/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: 1up-cli-linux-amd64
+          path: 1up-cli-${{ github.ref_name }}-linux-amd64
+
+  build-web:
+    name: Build Web (linux-amd64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.4.0
+        with:
+          go-version: '1.26'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Download & extract ParPar + Nyuu
+        run: |
+          mkdir -p cmd/1up-web/binaries
+          curl -fL -o /tmp/parpar.xz "https://github.com/animetosho/ParPar/releases/download/v${{ env.PARPAR_VERSION }}/parpar-v${{ env.PARPAR_VERSION }}-linux-static-amd64.xz"
+          xz -d /tmp/parpar.xz
+          mv /tmp/parpar cmd/1up-web/binaries/parpar
+          chmod +x cmd/1up-web/binaries/parpar
+          curl -fL -o /tmp/nyuu.tar.xz "https://github.com/Antidote2151/Nyuu-Obfuscation/releases/download/v${{ env.NYUU_VERSION }}/nyuu-v${{ env.NYUU_VERSION }}-linux-amd64.tar.xz"
+          tar -xf /tmp/nyuu.tar.xz -C cmd/1up-web/binaries/ nyuu
+          chmod +x cmd/1up-web/binaries/nyuu
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Copy frontend to static
+        run: cp -r frontend/dist/* cmd/1up-web/static/
+
+      - name: Build Web
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          go build \
+            -ldflags "-X main.AppVersion=${{ github.ref_name }}" \
+            -o 1up-web-${{ github.ref_name }}-linux-amd64 \
+            ./cmd/1up-web/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: 1up-web-linux-amd64
+          path: 1up-web-${{ github.ref_name }}-linux-amd64
+
+  release:
+    name: Publish Release
+    needs: [build-macos, build-windows, build-linux, build-cli, build-web]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --repo ${{ github.repository }} \
+            --title "1UP $TAG" \
+            --generate-notes \
+            "dist/1UP-macos-amd64/1UP-${TAG}-macos-amd64.zip" \
+            "dist/1UP-macos-arm64/1UP-${TAG}-macos-arm64.zip" \
+            "dist/1UP-windows-amd64/1UP-${TAG}-windows-amd64.exe" \
+            "dist/1UP-linux-amd64/1UP-${TAG}-linux-amd64.tar.gz" \
+            "dist/1up-cli-linux-amd64/1up-cli-${TAG}-linux-amd64" \
+            "dist/1up-web-linux-amd64/1up-web-${TAG}-linux-amd64"
