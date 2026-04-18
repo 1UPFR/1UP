@@ -310,3 +310,29 @@ jobs:
             "dist/1UP-linux-amd64/1UP-${TAG}-linux-amd64.tar.gz" \
             "dist/1up-cli-linux-amd64/1up-cli-${TAG}-linux-amd64" \
             "dist/1up-web-linux-amd64/1up-web-${TAG}-linux-amd64"
+
+      - name: Annonce Discord
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          [ -z "$DISCORD_WEBHOOK" ] && exit 0
+          cat > /tmp/discord.json << PAYLOAD
+          {
+            "embeds": [{
+              "title": "1UP $TAG",
+              "description": "Nouvelle version disponible !",
+              "url": "https://github.com/${{ github.repository }}/releases/tag/$TAG",
+              "color": 2278109,
+              "thumbnail": {"url": "https://raw.githubusercontent.com/${{ github.repository }}/main/1up.png"},
+              "fields": [
+                {"name": "macOS", "value": "Apple Silicon + Intel", "inline": true},
+                {"name": "Windows", "value": "64-bit", "inline": true},
+                {"name": "Linux", "value": "Desktop + CLI + Web", "inline": true}
+              ],
+              "footer": {"text": "1UP $TAG • Formats : .mkv .mp4 .iso"}
+            }]
+          }
+          PAYLOAD
+          curl -s -X POST "$DISCORD_WEBHOOK" -H "Content-Type: application/json" -d @/tmp/discord.json
