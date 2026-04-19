@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.2
+
+### Nouveautes
+- Fallback TMDB sur l'API officielle si le proxy est indisponible
+- Parser de nom de release integre (extraction titre, annee, type serie/film)
+- Recherche automatique film ou serie avec bascule si aucun resultat
+
 ## v1.3.1
 
 ### Interface

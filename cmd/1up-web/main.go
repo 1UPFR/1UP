@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/1UPFR/1UP/internal/api"
 	"github.com/1UPFR/1UP/internal/binutil"
 	"github.com/1UPFR/1UP/internal/config"
+	"github.com/1UPFR/1UP/internal/relparse"
 	"github.com/1UPFR/1UP/internal/history"
 	"github.com/1UPFR/1UP/internal/nyuu"
 	"github.com/1UPFR/1UP/internal/parpar"
@@ -34,6 +36,7 @@ var embeddedBinaries embed.FS
 var AppVersion = "dev"
 var apiBaseURL = ""
 var tmdbProxyBase = ""
+var tmdbAPIKey = ""
 var cfg *config.Config
 var historyDB *history.DB
 
@@ -629,29 +632,6 @@ func handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, []interface{}{})
 		return
 	}
-	resp, err := http.Get(fmt.Sprintf("%s?t=search&q=%s", tmdbProxyBase, q))
-	if err != nil {
-		jsonError(w, err.Error(), 500)
-		return
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-
-	var raw struct {
-		Results []struct {
-			Title         string `json:"title"`
-			EnglishTitle  string `json:"english_title"`
-			OriginalTitle string `json:"original_title"`
-			Years         string `json:"years"`
-			Poster        string `json:"poster"`
-			TmdbID        string `json:"tmdb_id"`
-			TmdbURL       string `json:"tmdb_url"`
-			ApiURL        string `json:"api_url"`
-			NoteTmdb      float64 `json:"note_tmdb"`
-			Overview      string `json:"overview"`
-		} `json:"results"`
-	}
-	json.Unmarshal(body, &raw)
 
 	type Result struct {
 		ID         int     `json:"id"`
@@ -662,68 +642,126 @@ func handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 		Overview   string  `json:"overview"`
 		Popularity float64 `json:"popularity"`
 	}
-	var results []Result
-	for _, r := range raw.Results {
-		id := 0
-		fmt.Sscanf(r.TmdbID, "%d", &id)
-		if id == 0 { continue }
-		title := r.Title
-		if title == "" { title = r.EnglishTitle }
-		if title == "" { title = r.OriginalTitle }
-		mt := "movie"
-		if strings.Contains(r.ApiURL, "t=tv") || strings.Contains(r.TmdbURL, "/tv/") { mt = "tv" }
-		results = append(results, Result{ID: id, Title: title, Year: r.Years, PosterPath: r.Poster, MediaType: mt, Overview: r.Overview, Popularity: r.NoteTmdb})
+
+	// Essayer le proxy
+	if tmdbProxyBase != "" {
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get(fmt.Sprintf("%s?t=search&q=%s", tmdbProxyBase, url.QueryEscape(q)))
+		if err == nil {
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(resp.Body)
+			var raw struct {
+				Results []struct {
+					Title, EnglishTitle, OriginalTitle, Years, Poster, TmdbID, TmdbURL, ApiURL, Overview string
+					NoteTmdb float64 `json:"note_tmdb"`
+				} `json:"results"`
+			}
+			json.Unmarshal(body, &raw)
+			var results []Result
+			for _, r := range raw.Results {
+				id := 0; fmt.Sscanf(r.TmdbID, "%d", &id)
+				if id == 0 { continue }
+				title := r.Title; if title == "" { title = r.EnglishTitle }; if title == "" { title = r.OriginalTitle }
+				mt := "movie"; if strings.Contains(r.ApiURL, "t=tv") || strings.Contains(r.TmdbURL, "/tv/") { mt = "tv" }
+				results = append(results, Result{ID: id, Title: title, Year: r.Years, PosterPath: r.Poster, MediaType: mt, Overview: r.Overview, Popularity: r.NoteTmdb})
+			}
+			if len(results) > 0 {
+				jsonResponse(w, results)
+				return
+			}
+		}
 	}
-	if results == nil { results = []Result{} }
-	jsonResponse(w, results)
+
+	// Fallback API officielle
+	if tmdbAPIKey != "" {
+		info := relparse.Parse(q)
+		if info.Title == "" { info.Title = q }
+		searchType := "movie"; if info.IsTV { searchType = "tv" }
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		params := url.Values{}
+		params.Set("api_key", tmdbAPIKey)
+		params.Set("language", "fr-FR")
+		params.Set("query", info.Title)
+		params.Set("page", "1")
+		params.Set("include_adult", "false")
+		if info.Year != "" { params.Set("year", info.Year) }
+
+		resp, err := client.Get(fmt.Sprintf("https://api.themoviedb.org/3/search/%s?%s", searchType, params.Encode()))
+		if err == nil {
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(resp.Body)
+			var raw struct {
+				Results []struct {
+					ID int `json:"id"`; Title, Name, Overview, PosterPath, ReleaseDate, FirstAirDate string
+					VoteAverage float64 `json:"vote_average"`
+				} `json:"results"`
+			}
+			json.Unmarshal(body, &raw)
+			var results []Result
+			for _, r := range raw.Results {
+				title := r.Title; if title == "" { title = r.Name }
+				year := r.ReleaseDate; if year == "" { year = r.FirstAirDate }; if len(year) > 4 { year = year[:4] }
+				poster := ""; if r.PosterPath != "" { poster = "https://image.tmdb.org/t/p/w200" + r.PosterPath }
+				results = append(results, Result{ID: r.ID, Title: title, Year: year, PosterPath: poster, MediaType: searchType, Overview: r.Overview, Popularity: r.VoteAverage})
+			}
+			if results == nil { results = []Result{} }
+			jsonResponse(w, results)
+			return
+		}
+	}
+
+	jsonResponse(w, []Result{})
 }
 
 func handleTMDBDetails(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	idStr := r.URL.Query().Get("id")
 	t := r.URL.Query().Get("t")
 	if t == "" { t = "movie" }
 
-	resp, err := http.Get(fmt.Sprintf("%s?t=%s&q=%s", tmdbProxyBase, t, id))
-	if err != nil {
-		jsonError(w, err.Error(), 500)
-		return
+	parseAndRespond := func(body []byte) {
+		var raw struct {
+			ID int; Title, Name, OriginalTitle, OriginalName, Overview, PosterPath, ReleaseDate, FirstAirDate string
+			Runtime int; VoteAverage float64 `json:"vote_average"`
+			Genres []struct{ Name string `json:"name"` } `json:"genres"`
+		}
+		json.Unmarshal(body, &raw)
+		title := raw.Title; if title == "" { title = raw.Name }; if title == "" { title = raw.OriginalTitle }
+		year := raw.ReleaseDate; if year == "" { year = raw.FirstAirDate }; if len(year) > 4 { year = year[:4] }
+		var genres []string; for _, g := range raw.Genres { if g.Name != "" { genres = append(genres, g.Name) } }
+		poster := ""; if raw.PosterPath != "" { poster = "https://image.tmdb.org/t/p/w200" + raw.PosterPath }
+		jsonResponse(w, map[string]interface{}{
+			"id": raw.ID, "title": title, "year": year, "overview": raw.Overview,
+			"posterPath": poster, "mediaType": t, "genres": genres,
+			"rating": raw.VoteAverage, "runtime": raw.Runtime,
+		})
 	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
 
-	var raw struct {
-		ID            int     `json:"id"`
-		Title         string  `json:"title"`
-		Name          string  `json:"name"`
-		OriginalTitle string  `json:"original_title"`
-		OriginalName  string  `json:"original_name"`
-		Overview      string  `json:"overview"`
-		PosterPath    string  `json:"poster_path"`
-		ReleaseDate   string  `json:"release_date"`
-		FirstAirDate  string  `json:"first_air_date"`
-		Runtime       int     `json:"runtime"`
-		VoteAverage   float64 `json:"vote_average"`
-		Genres        []struct{ Name string `json:"name"` } `json:"genres"`
+	// Proxy
+	if tmdbProxyBase != "" {
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get(fmt.Sprintf("%s?t=%s&q=%s", tmdbProxyBase, t, idStr))
+		if err == nil {
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(resp.Body)
+			parseAndRespond(body)
+			return
+		}
 	}
-	json.Unmarshal(body, &raw)
 
-	title := raw.Title
-	if title == "" { title = raw.Name }
-	if title == "" { title = raw.OriginalTitle }
-	if title == "" { title = raw.OriginalName }
-	year := raw.ReleaseDate
-	if year == "" { year = raw.FirstAirDate }
-	if len(year) > 4 { year = year[:4] }
-	var genres []string
-	for _, g := range raw.Genres { if g.Name != "" { genres = append(genres, g.Name) } }
-	poster := ""
-	if raw.PosterPath != "" { poster = "https://image.tmdb.org/t/p/w200" + raw.PosterPath }
+	// Fallback officiel
+	if tmdbAPIKey != "" {
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Get(fmt.Sprintf("https://api.themoviedb.org/3/%s/%s?api_key=%s&language=fr-FR", t, idStr, tmdbAPIKey))
+		if err == nil {
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(resp.Body)
+			parseAndRespond(body)
+			return
+		}
+	}
 
-	jsonResponse(w, map[string]interface{}{
-		"id": raw.ID, "title": title, "year": year, "overview": raw.Overview,
-		"posterPath": poster, "mediaType": t, "genres": genres,
-		"rating": raw.VoteAverage, "runtime": raw.Runtime,
-	})
+	jsonError(w, "aucune source TMDB disponible", 500)
 }
 
 func handleHistory(w http.ResponseWriter, r *http.Request) {
