@@ -8,6 +8,9 @@
 - Le journal survit a la fermeture de l'application
 - Nettoyage automatique des entrees > 24h
 
+### Interface
+- MediaInfo : barre verticale separatrice entre les 2 colonnes
+
 ## v1.2.4
 
 ### Nouveautes
