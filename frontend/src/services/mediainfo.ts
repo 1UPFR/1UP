@@ -133,9 +133,9 @@ function normalizeLang(lang: string): string {
 }
 
 function detectResolution(w: number, h: number): string {
-  if (h >= 2160 || w >= 3840) return '2160p'
-  if (h >= 1080 || w >= 1920) return '1080p'
-  if (h >= 720 || w >= 1280) return '720p'
+  if (h >= 1960 || w >= 3790) return '2160p'
+  if (h >= 880 || w >= 1870) return '1080p'
+  if (h >= 520 || w >= 1230) return '720p'
   return 'SD'
 }
 
