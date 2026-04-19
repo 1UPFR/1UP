@@ -51,8 +51,19 @@ export default function App() {
     }
   }, [])
 
-  const ctxAction = (action: string) => {
-    document.execCommand(action)
+  const ctxAction = async (action: string) => {
+    if (action === 'copy' || action === 'cut') {
+      const sel = window.getSelection()?.toString() || ''
+      if (sel) {
+        try { await navigator.clipboard.writeText(sel) } catch { document.execCommand('copy') }
+        if (action === 'cut') document.execCommand('delete')
+      }
+    } else if (action === 'paste') {
+      try {
+        const text = await navigator.clipboard.readText()
+        document.execCommand('insertText', false, text)
+      } catch { document.execCommand('paste') }
+    }
     setCtxMenu(null)
   }
 
