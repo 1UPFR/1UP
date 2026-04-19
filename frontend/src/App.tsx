@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import JournalPage from './pages/JournalPage'
@@ -30,8 +30,43 @@ export default function App() {
       .catch(() => {})
   }, [])
 
+  // Context menu
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; hasSelection: boolean } | null>(null)
+
+  useEffect(() => {
+    const handleContext = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        e.preventDefault()
+        const sel = window.getSelection()
+        setCtxMenu({ x: e.clientX, y: e.clientY, hasSelection: !!(sel && sel.toString()) })
+      }
+    }
+    const handleClick = () => setCtxMenu(null)
+    document.addEventListener('contextmenu', handleContext)
+    document.addEventListener('click', handleClick)
+    return () => {
+      document.removeEventListener('contextmenu', handleContext)
+      document.removeEventListener('click', handleClick)
+    }
+  }, [])
+
+  const ctxAction = (action: string) => {
+    document.execCommand(action)
+    setCtxMenu(null)
+  }
+
   return (
     <div className="layout">
+      {ctxMenu && (
+        <div className="ctx-menu" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
+          <button className="ctx-menu-item" disabled={!ctxMenu.hasSelection} onClick={() => ctxAction('cut')}>Couper</button>
+          <button className="ctx-menu-item" disabled={!ctxMenu.hasSelection} onClick={() => ctxAction('copy')}>Copier</button>
+          <button className="ctx-menu-item" onClick={() => ctxAction('paste')}>Coller</button>
+          <div className="ctx-menu-sep" />
+          <button className="ctx-menu-item" onClick={() => { document.execCommand('selectAll'); setCtxMenu(null) }}>Tout selectionner</button>
+        </div>
+      )}
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img src={logo} alt="1UP" className="logo-img" />

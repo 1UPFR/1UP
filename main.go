@@ -33,7 +33,6 @@ func main() {
 		BackgroundColour:   &options.RGBA{R: 13, G: 17, B: 23, A: 1},
 		OnStartup:          app.startup,
 		OnShutdown:         app.shutdown,
-		EnableDefaultContextMenu: true,
 		DragAndDrop:        &options.DragAndDrop{EnableFileDrop: true},
 		Bind: []interface{}{
 			app,
