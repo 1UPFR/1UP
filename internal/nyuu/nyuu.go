@@ -47,6 +47,7 @@ func binaryPath() string {
 func Run(cfg *config.NyuuConfig, inputFiles []string, nzbOutputPath string, releaseName string, onProgress func(Progress)) (*Result, error) {
 	args := buildArgs(cfg, inputFiles, nzbOutputPath, releaseName)
 	cmd := exec.Command(binaryPath(), args...)
+	binutil.HideWindow(cmd)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {

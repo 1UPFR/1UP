@@ -11,6 +11,7 @@ interface Config {
 export default function SettingsPage() {
   const [config, setConfig] = useState<Config | null>(null)
   const [saved, setSaved] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     GetConfig().then((c: any) => setConfig(c)).catch(console.error)
@@ -41,10 +42,17 @@ export default function SettingsPage() {
 
   if (!config) return <div className="spinner" style={{ margin: '40px auto', display: 'block' }} />
 
+  const configPath = (typeof navigator !== 'undefined' && navigator.platform?.includes('Win'))
+    ? '%USERPROFILE%\\.config\\1up\\config.json'
+    : '~/.config/1up/config.json'
+
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 className="page-title">Reglages</h1>
+        <div>
+          <h1 className="page-title">Reglages</h1>
+          <p className="text-muted text-xs" style={{ marginTop: 4, fontFamily: 'monospace' }}>{configPath}</p>
+        </div>
         {saved && <span className="badge badge-success">Sauvegarde</span>}
       </div>
 
@@ -52,19 +60,40 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="card-header" style={{ marginBottom: 10 }}>
           <span className="card-title" style={{ fontSize: 13 }}>Serveur Usenet (Nyuu)</span>
-          <label className="toggle">
-            <input type="checkbox" checked={config.nyuu.ssl} onChange={e => update('nyuu.ssl', e.target.checked)} />
-            <span className="toggle-slider"></span>
-          </label>
         </div>
-        <div className="grid-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 1fr', gap: 12 }}>
           <Field label="Hote" value={config.nyuu.host} onChange={v => update('nyuu.host', v)} placeholder="news.example.com" />
           <Field label="Port" value={String(config.nyuu.port)} onChange={v => update('nyuu.port', parseInt(v) || 563)} type="number" />
+          <div className="form-group">
+            <label className="label">SSL</label>
+            <label className="toggle" style={{ marginTop: 6 }}>
+              <input type="checkbox" checked={config.nyuu.ssl} onChange={e => update('nyuu.ssl', e.target.checked)} />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
           <Field label="Connexions" value={String(config.nyuu.connections)} onChange={v => update('nyuu.connections', parseInt(v) || 20)} type="number" />
         </div>
         <div className="grid-3">
           <Field label="Utilisateur" value={config.nyuu.user} onChange={v => update('nyuu.user', v)} />
-          <Field label="Mot de passe" value={config.nyuu.password} onChange={v => update('nyuu.password', v)} type="password" />
+          <div className="form-group">
+            <label className="label">Mot de passe</label>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                className="input"
+                type={showPassword ? 'text' : 'password'}
+                value={config.nyuu.password}
+                onChange={e => update('nyuu.password', e.target.value)}
+              />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowPassword(v => !v)}
+                title={showPassword ? 'Masquer' : 'Afficher'}
+                style={{ fontSize: 16, padding: '4px 8px', flexShrink: 0 }}
+              >
+                {showPassword ? '\u{1F441}' : '\u{1F441}\u{200D}\u{1F5E8}'}
+              </button>
+            </div>
+          </div>
           <Field label="Groupe" value={config.nyuu.group} onChange={v => update('nyuu.group', v)} />
         </div>
       </div>

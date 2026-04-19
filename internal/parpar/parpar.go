@@ -43,6 +43,7 @@ func Run(cfg *config.ParParConfig, inputPath string, onProgress func(Progress)) 
 
 	args := buildArgs(cfg, outputPath, inputPath)
 	cmd := exec.Command(binaryPath(), args...)
+	binutil.HideWindow(cmd)
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
