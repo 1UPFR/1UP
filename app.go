@@ -56,7 +56,26 @@ func (a *App) startup(ctx context.Context) {
 	a.journal = j
 }
 
+func (a *App) domReady(ctx context.Context) {
+	// Restaurer la taille de la fenetre
+	if a.cfg.Window.Width > 0 && a.cfg.Window.Height > 0 {
+		runtime.WindowSetSize(ctx, a.cfg.Window.Width, a.cfg.Window.Height)
+	}
+	if a.cfg.Window.X > 0 || a.cfg.Window.Y > 0 {
+		runtime.WindowSetPosition(ctx, a.cfg.Window.X, a.cfg.Window.Y)
+	}
+}
+
 func (a *App) shutdown(ctx context.Context) {
+	// Sauvegarder la taille de la fenetre
+	w, h := runtime.WindowGetSize(ctx)
+	x, y := runtime.WindowGetPosition(ctx)
+	a.cfg.Window.Width = w
+	a.cfg.Window.Height = h
+	a.cfg.Window.X = x
+	a.cfg.Window.Y = y
+	a.cfg.Save()
+
 	if a.history != nil {
 		a.history.Close()
 	}

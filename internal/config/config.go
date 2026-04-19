@@ -32,11 +32,19 @@ type APIConfig struct {
 	Enabled bool   `json:"enabled"`
 }
 
+type WindowConfig struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+	X      int `json:"x"`
+	Y      int `json:"y"`
+}
+
 type Config struct {
 	ParPar    ParParConfig `json:"parpar"`
 	Nyuu      NyuuConfig   `json:"nyuu"`
 	API       APIConfig    `json:"api"`
 	OutputDir string       `json:"output_dir"`
+	Window    WindowConfig `json:"window"`
 }
 
 func DefaultConfig() *Config {

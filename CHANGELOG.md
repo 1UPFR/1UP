@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.3
+
+### Interface
+- Taille et position de la fenetre sauvegardees entre les sessions
+- Fenetre reduite a 1280x800 par defaut pour compatibilite scaling DPI
+
 ## v1.3.2
 
 ### Nouveautes
