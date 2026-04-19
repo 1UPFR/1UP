@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.1
+
+### Interface
+- Support 1280x720 : minimum abaisse a 1024x600, paddings adaptatifs
+- Journal : pagination dynamique adaptee a la taille de la fenetre
+
 ## v1.3.0
 
 ### Nouveautes
@@ -11,7 +17,7 @@
 ### Interface
 - MediaInfo : barre verticale separatrice entre les 2 colonnes
 - Mise a jour : l'application se ferme apres ouverture du lien de telechargement
-- Journal : plus recents en haut, pagination, groupement par date (Aujourd'hui/Hier)
+- Journal : plus recents en haut, pagination, groupement par date
 
 ## v1.2.4
 

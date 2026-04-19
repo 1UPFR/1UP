@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { JournalList, JournalClear } from '../../wailsjs/go/main/App'
 
 interface JEntry {
@@ -42,18 +42,35 @@ export default function JournalPage({ visible }: { visible?: boolean }) {
   const [entries, setEntries] = useState<JEntry[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
-  const limit = 50
+  const [perPage, setPerPage] = useState(30)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  const calcPageSize = useCallback(() => {
+    const el = contentRef.current
+    if (!el) return
+    // hauteur dispo - header(80) - pagination(50) - marges
+    const available = el.clientHeight - 130
+    const rowHeight = 36 // hauteur d'une ligne de journal
+    const count = Math.max(5, Math.floor(available / rowHeight))
+    setPerPage(count)
+  }, [])
+
+  useEffect(() => {
+    calcPageSize()
+    window.addEventListener('resize', calcPageSize)
+    return () => window.removeEventListener('resize', calcPageSize)
+  }, [calcPageSize])
 
   const load = async () => {
     try {
-      const result = await JournalList({ limit, offset: page * limit })
+      const result = await JournalList({ limit: perPage, offset: page * perPage })
       setEntries((result.entries || []) as any)
       setTotal(result.total || 0)
     } catch {}
   }
 
-  useEffect(() => { load() }, [page])
-  useEffect(() => { if (visible) { setPage(0); load() } }, [visible])
+  useEffect(() => { load() }, [page, perPage])
+  useEffect(() => { if (visible) { setPage(0); calcPageSize(); load() } }, [visible])
 
   const handleClear = async () => {
     await JournalClear()
@@ -63,10 +80,10 @@ export default function JournalPage({ visible }: { visible?: boolean }) {
   }
 
   const groups = groupByDate(entries)
-  const totalPages = Math.ceil(total / limit)
+  const totalPages = Math.ceil(total / perPage)
 
   return (
-    <div>
+    <div ref={contentRef} style={{ height: '100%' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h1 className="page-title">Journal</h1>
