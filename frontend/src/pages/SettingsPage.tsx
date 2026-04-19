@@ -122,8 +122,7 @@ export default function SettingsPage() {
             </label>
           </div>
           {(config.api.enabled ?? false) ? (
-            <div className="grid-2">
-              <Field label="URL API" value={config.api.url} onChange={v => update('api.url', v)} />
+            <div>
               <Field label="Cle API" value={config.api.apikey} onChange={v => update('api.apikey', v)} />
             </div>
           ) : (

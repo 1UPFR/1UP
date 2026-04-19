@@ -22,6 +22,7 @@ import (
 var embeddedBinaries embed.FS
 
 var AppVersion = "dev"
+var apiBaseURL = ""
 
 func main() {
 	binutil.Init(embeddedBinaries)
@@ -39,6 +40,9 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Erreur config: %v\n", err)
 		os.Exit(1)
+	}
+	if apiBaseURL != "" {
+		api.BaseURL = apiBaseURL
 	}
 
 	if *configFlag {

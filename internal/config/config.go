@@ -53,9 +53,7 @@ func DefaultConfig() *Config {
 			Connections: 20,
 			Group:       "alt.binaries.boneless",
 		},
-		API: APIConfig{
-			URL: "https://unfr.pw/api-upload_v2?apikey=",
-		},
+		API: APIConfig{},
 		OutputDir: "",
 	}
 }

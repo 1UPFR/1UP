@@ -31,6 +31,8 @@ var staticFS embed.FS
 var embeddedBinaries embed.FS
 
 var AppVersion = "dev"
+var apiBaseURL = ""
+var tmdbProxyBase = ""
 var cfg *config.Config
 var historyDB *history.DB
 
@@ -51,6 +53,9 @@ func main() {
 	cfg, err = config.Load()
 	if err != nil {
 		log.Fatalf("Erreur config: %v", err)
+	}
+	if apiBaseURL != "" {
+		api.BaseURL = apiBaseURL
 	}
 	historyDB, err = history.Open()
 	if err != nil {
@@ -522,7 +527,7 @@ func handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, []interface{}{})
 		return
 	}
-	resp, err := http.Get(fmt.Sprintf("https://tmdb.uklm.xyz/api.php?t=search&q=%s", q))
+	resp, err := http.Get(fmt.Sprintf("%s?t=search&q=%s", tmdbProxyBase, q))
 	if err != nil {
 		jsonError(w, err.Error(), 500)
 		return
@@ -576,7 +581,7 @@ func handleTMDBDetails(w http.ResponseWriter, r *http.Request) {
 	t := r.URL.Query().Get("t")
 	if t == "" { t = "movie" }
 
-	resp, err := http.Get(fmt.Sprintf("https://tmdb.uklm.xyz/api.php?t=%s&q=%s", t, id))
+	resp, err := http.Get(fmt.Sprintf("%s?t=%s&q=%s", tmdbProxyBase, t, id))
 	if err != nil {
 		jsonError(w, err.Error(), 500)
 		return

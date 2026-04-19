@@ -62,7 +62,7 @@ jobs:
           chmod +x binaries/${{ matrix.bindir }}/nyuu
 
       - name: Build (macOS ${{ matrix.arch }})
-        run: wails build -platform darwin/${{ matrix.arch }} -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }}"
+        run: wails build -platform darwin/${{ matrix.arch }} -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }} -X main.apiBaseURL=${{ secrets.API_BASE_URL }} -X main.tmdbProxyBase=${{ secrets.TMDB_PROXY_URL }}"
 
       - name: Ad-hoc signing
         run: |
@@ -117,7 +117,7 @@ jobs:
           find /tmp/nyuu-extracted -name 'nyuu.exe' -exec mv {} binaries/windows-amd64/nyuu.exe \;
 
       - name: Build (Windows amd64)
-        run: wails build -platform windows/amd64 -o 1UP.exe -ldflags "-X main.appVersion=${{ github.ref_name }}"
+        run: wails build -platform windows/amd64 -o 1UP.exe -ldflags "-X main.appVersion=${{ github.ref_name }} -X main.apiBaseURL=${{ secrets.API_BASE_URL }} -X main.tmdbProxyBase=${{ secrets.TMDB_PROXY_URL }}"
 
       - name: Rename exe with version
         shell: pwsh
@@ -176,7 +176,7 @@ jobs:
       - name: Build (Linux amd64)
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
-          wails build -platform linux/amd64 -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }}"
+          wails build -platform linux/amd64 -o 1UP -ldflags "-X main.appVersion=${{ github.ref_name }} -X main.apiBaseURL=${{ secrets.API_BASE_URL }} -X main.tmdbProxyBase=${{ secrets.TMDB_PROXY_URL }}"
 
       - name: Package as tar.gz
         run: |
@@ -220,7 +220,7 @@ jobs:
           CGO_ENABLED: '0'
         run: |
           go build \
-            -ldflags "-X main.AppVersion=${{ github.ref_name }}" \
+            -ldflags "-X main.AppVersion=${{ github.ref_name }} -X main.apiBaseURL=${{ secrets.API_BASE_URL }} -X main.tmdbProxyBase=${{ secrets.TMDB_PROXY_URL }}" \
             -o 1up-cli-${{ github.ref_name }}-linux-amd64 \
             ./cmd/1up-cli/
 
@@ -273,7 +273,7 @@ jobs:
           CGO_ENABLED: '0'
         run: |
           go build \
-            -ldflags "-X main.AppVersion=${{ github.ref_name }}" \
+            -ldflags "-X main.AppVersion=${{ github.ref_name }} -X main.apiBaseURL=${{ secrets.API_BASE_URL }} -X main.tmdbProxyBase=${{ secrets.TMDB_PROXY_URL }}" \
             -o 1up-web-${{ github.ref_name }}-linux-amd64 \
             ./cmd/1up-web/
 

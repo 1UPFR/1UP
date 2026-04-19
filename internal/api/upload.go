@@ -14,6 +14,16 @@ import (
 	"github.com/1UPFR/1UP/internal/config"
 )
 
+// BaseURL est injectee au runtime via ldflags, jamais sauvegardee dans la config
+var BaseURL = ""
+
+func getURL(cfg *config.APIConfig) string {
+	if cfg.URL != "" {
+		return cfg.URL + cfg.APIKey
+	}
+	return BaseURL + cfg.APIKey
+}
+
 type CheckResult struct {
 	Code    int    `json:"code"`
 	Explain string `json:"Explain"`
@@ -21,7 +31,7 @@ type CheckResult struct {
 }
 
 func CheckRelease(cfg *config.APIConfig, releaseName string) (*CheckResult, error) {
-	url := cfg.URL + cfg.APIKey + "&check=" + releaseName
+	url := getURL(cfg) + "&check=" + releaseName
 	client := &http.Client{Timeout: 15 * time.Second}
 
 	resp, err := client.Get(url)
@@ -96,11 +106,11 @@ func Upload(cfg *config.APIConfig, releaseName string, nzbPath string, mediainfo
 		return nil, fmt.Errorf("erreur fermeture multipart: %w", err)
 	}
 
-	url := cfg.URL + cfg.APIKey
+	apiURL := getURL(cfg)
 	client := &http.Client{Timeout: 60 * time.Second}
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest("POST", apiURL, body)
 	if err != nil {
-		return nil, fmt.Errorf("erreur création requête: %w", err)
+		return nil, fmt.Errorf("erreur creation requete: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
@@ -168,9 +178,9 @@ func UploadManual(cfg *config.APIConfig, params ManualUploadParams) (*UploadResu
 		return nil, err
 	}
 
-	url := cfg.URL + cfg.APIKey
+	apiURL := getURL(cfg)
 	client := &http.Client{Timeout: 60 * time.Second}
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest("POST", apiURL, body)
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ Application Go multiplateforme (Linux CLI/Web, macOS, Windows x64/ARM) pour post
 - **ParPar** : binaire embarqué via embed ou extraction au runtime
 - **Nyuu** : binaire embarqué via embed ou extraction au runtime
 - **MediaInfo** : bibliothèque Go native (pas de dépendance externe)
-- **API** : upload multipart vers `https://unfr.pw/api-upload_v2`
+- **API** : upload multipart (URL injectee via secret GitHub)
 - **Web** : interface web optionnelle pour Linux
 
 ## Interfaces
@@ -84,6 +84,6 @@ Format nzb-subject: [{0filenum}/{files}] - "{filename}" yEnc ({part}/{parts})
 
 ### API Upload
 ```
-URL: https://unfr.pw/api-upload_v2?apikey=<APIKEY>
+URL: (injectee via secret GitHub API_BASE_URL)
 Champs: rlsname, generated_nfo_json (fichier), nzb (fichier), upload=upload
 ```

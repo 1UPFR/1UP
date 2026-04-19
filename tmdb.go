@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const tmdbProxyBase = "https://tmdb.uklm.xyz/api.php"
+var tmdbProxyBase = ""
 const tmdbImageBase = "https://image.tmdb.org/t/p/w200"
 
 type TMDBResult struct {

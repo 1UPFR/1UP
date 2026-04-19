@@ -17,6 +17,8 @@ import (
 	"github.com/1UPFR/1UP/internal/parpar"
 )
 
+var apiBaseURL = ""
+
 type App struct {
 	ctx     context.Context
 	cfg     *config.Config
@@ -35,6 +37,9 @@ func (a *App) startup(ctx context.Context) {
 		cfg = config.DefaultConfig()
 	}
 	a.cfg = cfg
+	if apiBaseURL != "" {
+		api.BaseURL = apiBaseURL
+	}
 
 	h, err := history.Open()
 	if err != nil {
