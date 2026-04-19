@@ -303,7 +303,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           VERSION="${TAG#v}"
-          awk "/^## v${VERSION}$/,/^## v/" CHANGELOG.md | head -n -1 | tail -n +2 > /tmp/release_notes.md
+          awk "/^## v${VERSION}/{found=1; next} /^## v/{found=0} found" CHANGELOG.md > /tmp/release_notes.md
           if [ ! -s /tmp/release_notes.md ]; then
             echo "Nouvelle version ${TAG}" > /tmp/release_notes.md
           fi
