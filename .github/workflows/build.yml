@@ -290,10 +290,23 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6.0.2
+
       - name: Download all artifacts
         uses: actions/download-artifact@v8.0.1
         with:
           path: dist
+
+      - name: Extract changelog
+        id: changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#v}"
+          awk "/^## v${VERSION}$/,/^## v/" CHANGELOG.md | head -n -1 | tail -n +2 > /tmp/release_notes.md
+          if [ ! -s /tmp/release_notes.md ]; then
+            echo "Nouvelle version ${TAG}" > /tmp/release_notes.md
+          fi
 
       - name: Create Release
         env:
@@ -303,7 +316,7 @@ jobs:
           gh release create "$TAG" \
             --repo ${{ github.repository }} \
             --title "1UP $TAG" \
-            --generate-notes \
+            --notes-file /tmp/release_notes.md \
             "dist/1UP-macos-amd64/1UP-${TAG}-macos-amd64.zip" \
             "dist/1UP-macos-arm64/1UP-${TAG}-macos-arm64.zip" \
             "dist/1UP-windows-amd64/1UP-${TAG}-windows-amd64.exe" \
@@ -318,11 +331,12 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           [ -z "$DISCORD_WEBHOOK" ] && exit 0
+          NOTES=$(cat /tmp/release_notes.md | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
           cat > /tmp/discord.json << PAYLOAD
           {
             "embeds": [{
               "title": "1UP $TAG",
-              "description": "Nouvelle version disponible !",
+              "description": "$NOTES",
               "url": "https://github.com/${{ github.repository }}/releases/tag/$TAG",
               "color": 2278109,
               "thumbnail": {"url": "https://raw.githubusercontent.com/${{ github.repository }}/main/1up.png"},
