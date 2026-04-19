@@ -18,6 +18,9 @@ export function SelectFileWithFilter(arg1: string, arg2: string): Promise<string
 export function ManualUpload(arg1: string, arg2: string, arg3: string, arg4: string, arg5: string): Promise<any>;
 export function CheckRelease(arg1: string): Promise<{code: number; Explain: string; exists: boolean}>;
 export function SaveMediaInfoJSON(arg1: string, arg2: string): Promise<string>;
+export function JournalAdd(arg1: string, arg2: string): Promise<void>;
+export function JournalList(): Promise<any[]>;
+export function JournalClear(): Promise<void>;
 export function TestUsenet(): Promise<{success: boolean; message: string}>;
 export function GetAppVersion(): Promise<string>;
 export function CheckUpdate(): Promise<{available: boolean; latest: string; url: string}>;

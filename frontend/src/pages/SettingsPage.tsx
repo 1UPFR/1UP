@@ -69,7 +69,7 @@ export default function SettingsPage() {
               </span>
             )}
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-primary btn-sm"
               disabled={testing || !config.nyuu.host}
               onClick={async () => {
                 setTesting(true); setTestResult(null)

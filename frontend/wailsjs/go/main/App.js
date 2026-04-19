@@ -81,6 +81,18 @@ export function SaveMediaInfoJSON(arg1, arg2) {
     return window['go']['main']['App']['SaveMediaInfoJSON'](arg1, arg2);
 }
 
+export function JournalAdd(arg1, arg2) {
+    return window['go']['main']['App']['JournalAdd'](arg1, arg2);
+}
+
+export function JournalList() {
+    return window['go']['main']['App']['JournalList']();
+}
+
+export function JournalClear() {
+    return window['go']['main']['App']['JournalClear']();
+}
+
 export function TestUsenet() {
     return window['go']['main']['App']['TestUsenet']();
 }

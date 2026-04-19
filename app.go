@@ -13,6 +13,7 @@ import (
 	"github.com/1UPFR/1UP/internal/api"
 	"github.com/1UPFR/1UP/internal/config"
 	"github.com/1UPFR/1UP/internal/history"
+	"github.com/1UPFR/1UP/internal/journal"
 	"github.com/1UPFR/1UP/internal/nyuu"
 	"github.com/1UPFR/1UP/internal/parpar"
 )
@@ -23,6 +24,7 @@ type App struct {
 	ctx     context.Context
 	cfg     *config.Config
 	history *history.DB
+	journal *journal.DB
 }
 
 func NewApp() *App {
@@ -46,11 +48,42 @@ func (a *App) startup(ctx context.Context) {
 		fmt.Fprintf(os.Stderr, "Erreur ouverture historique: %v\n", err)
 	}
 	a.history = h
+
+	j, err := journal.Open()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Erreur ouverture journal: %v\n", err)
+	}
+	a.journal = j
 }
 
 func (a *App) shutdown(ctx context.Context) {
 	if a.history != nil {
 		a.history.Close()
+	}
+	if a.journal != nil {
+		a.journal.Close()
+	}
+}
+
+// JournalAdd ajoute une entree au journal persistant
+func (a *App) JournalAdd(level string, message string) {
+	if a.journal != nil {
+		a.journal.Add(level, message)
+	}
+}
+
+// JournalList retourne les entrees des 24 dernieres heures
+func (a *App) JournalList() ([]journal.Entry, error) {
+	if a.journal == nil {
+		return []journal.Entry{}, nil
+	}
+	return a.journal.List()
+}
+
+// JournalClear vide le journal
+func (a *App) JournalClear() {
+	if a.journal != nil {
+		a.journal.Clear()
 	}
 }
 

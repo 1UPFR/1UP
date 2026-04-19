@@ -5,7 +5,7 @@ import SettingsPage from './pages/SettingsPage'
 import JournalPage from './pages/JournalPage'
 import HistoryPage from './pages/HistoryPage'
 import ManualPage from './pages/ManualPage'
-import { GetAppVersion, CheckUpdate } from '../wailsjs/go/main/App'
+import { GetAppVersion, CheckUpdate, JournalAdd } from '../wailsjs/go/main/App'
 import logo from './assets/logo.png'
 
 type Page = 'upload' | 'manual' | 'history' | 'settings' | 'journal'
@@ -16,12 +16,13 @@ export default function App() {
   const [update, setUpdate] = useState<{ version: string; url: string } | null>(null)
   const [logs, setLogs] = useState<string[]>([])
 
-  const addLog = useCallback((msg: string) => {
+  const addLog = useCallback((msg: string, level: string = 'info') => {
     const now = new Date().toLocaleTimeString()
     setLogs(prev => {
       const next = [...prev, `[${now}] ${msg}`]
       return next.length > 500 ? next.slice(-500) : next
     })
+    JournalAdd(level, msg).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -132,7 +133,7 @@ export default function App() {
           <SettingsPage />
         </div>
         <div style={{ display: page === 'journal' ? undefined : 'none', height: '100%' }}>
-          <JournalPage logs={logs} onClear={() => setLogs([])} />
+          <JournalPage visible={page === 'journal'} />
         </div>
       </main>
     </div>
