@@ -1,4 +1,3 @@
-import MediaInfoFactory from 'mediainfo.js'
 import { GetFileSize, ReadFileChunk } from '../../wailsjs/go/main/App'
 
 export interface ParsedMediaInfo {
@@ -16,21 +15,92 @@ export interface ParsedMediaInfo {
   frameRate: number
 }
 
-async function analyzeFile(filePath: string): Promise<any> {
-  const fileSize = await GetFileSize(filePath)
-  const mi = await MediaInfoFactory({ format: 'object', locateFile: () => 'mediainfo.wasm' })
+declare global {
+  interface Window {
+    MediaInfoLib: any
+  }
+}
 
-  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
+// Charger le module MediaInfoWasm
+let modulePromise: Promise<any> | null = null
+
+function loadModule(): Promise<any> {
+  if (modulePromise) return modulePromise
+  modulePromise = new Promise((resolve) => {
+    const script = document.createElement('script')
+    script.src = 'MediaInfoWasm.js'
+    script.onload = () => {
+      const factory = (window as any).MediaInfoLib
+      if (typeof factory === 'function') {
+        const mod = factory({
+          locateFile: (name: string) => name,
+          postRun: [] as any[],
+        })
+        if (mod instanceof Promise) {
+          mod.then(resolve)
+        } else {
+          // postRun callback
+          const orig = factory
+          const modWithPost = orig({
+            locateFile: (name: string) => name,
+            postRun: [() => {}],
+          })
+          if (modWithPost instanceof Promise) {
+            modWithPost.then(resolve)
+          } else {
+            resolve(modWithPost)
+          }
+        }
+      }
+    }
+    document.body.appendChild(script)
+  })
+  return modulePromise
+}
+
+// Analyser un fichier via Wails (lecture par chunks)
+async function analyzeFileNative(filePath: string): Promise<{ parsed: any; json: string }> {
+  const mod = await loadModule()
+  const MI = new mod.MediaInfo()
+  const fileSize = await GetFileSize(filePath)
+  const CHUNK_SIZE = 1024 * 1024
+
+  // Open
+  MI.Open_Buffer_Init(fileSize, 0)
+
+  let offset = 0
+  while (offset < fileSize) {
+    const size = Math.min(CHUNK_SIZE, fileSize - offset)
     const b64 = await ReadFileChunk(filePath, offset, size)
     const bin = atob(b64)
     const arr = new Uint8Array(bin.length)
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
-    return arr
+
+    // Feed data
+    const result = MI.Open_Buffer_Continue(arr, arr.length)
+    const seekTo = MI.Open_Buffer_Continue_GoTo_Get()
+
+    if (seekTo !== -1) {
+      offset = Number(seekTo)
+      MI.Open_Buffer_Init(fileSize, offset)
+    } else {
+      offset += size
+    }
+
+    if (result & 0x08) break // Finished
   }
 
-  const result = await mi.analyzeData(() => fileSize, readChunk)
-  mi.close()
-  return result
+  MI.Open_Buffer_Finalize()
+
+  // Get JSON full
+  MI.Option("Inform", "JSON")
+  MI.Option("Complete", "1")
+  const json = MI.Inform()
+
+  MI.Close()
+  MI.delete()
+
+  return { parsed: JSON.parse(json), json }
 }
 
 const langNames: Record<string, string> = {
@@ -95,8 +165,8 @@ function detectHDR(video: any): string {
 }
 
 export async function getMediaInfoJS(filePath: string): Promise<ParsedMediaInfo> {
-  const result = await analyzeFile(filePath)
-  const tracks: any[] = result?.media?.track ?? []
+  const { parsed } = await analyzeFileNative(filePath)
+  const tracks: any[] = parsed?.media?.track ?? []
 
   const general = tracks.find((t: any) => t['@type'] === 'General') ?? {}
   const video = tracks.find((t: any) => t['@type'] === 'Video') ?? {}
@@ -151,18 +221,6 @@ export async function getMediaInfoJS(filePath: string): Promise<ParsedMediaInfo>
 }
 
 export async function getMediaInfoJSON(filePath: string): Promise<string> {
-  const fileSize = await GetFileSize(filePath)
-  const mi = await MediaInfoFactory({ format: 'JSON', full: true, locateFile: () => 'mediainfo.wasm' } as any)
-
-  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
-    const b64 = await ReadFileChunk(filePath, offset, size)
-    const bin = atob(b64)
-    const arr = new Uint8Array(bin.length)
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
-    return arr
-  }
-
-  const result = await mi.analyzeData(() => fileSize, readChunk)
-  mi.close()
-  return result as string
+  const { json } = await analyzeFileNative(filePath)
+  return json
 }
