@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0.1
+
+### Corrections
+- Historique : rechargement auto quand la page devient visible
+- MediaInfo JSON : injection CompleteName et @ref dans le JSON natif
+
 ## v1.2.0
 
 ### MediaInfo

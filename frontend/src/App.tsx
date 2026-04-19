@@ -99,7 +99,7 @@ export default function App() {
           <ManualPage />
         </div>
         <div style={{ display: page === 'history' ? undefined : 'none', height: '100%' }}>
-          <HistoryPage />
+          <HistoryPage visible={page === 'history'} />
         </div>
         <div style={{ display: page === 'settings' ? undefined : 'none', height: '100%' }}>
           <SettingsPage />

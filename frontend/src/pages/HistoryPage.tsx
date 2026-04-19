@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { HistoryList, HistoryStats, HistoryDelete, HistoryClear } from '../../wailsjs/go/main/App'
 
 function formatBytes(bytes: number): string {
@@ -23,7 +23,7 @@ interface Entry {
   tmdb_poster: string; tmdb_type: string; api_result: string; created_at: string;
 }
 
-export default function HistoryPage() {
+export default function HistoryPage({ visible }: { visible?: boolean }) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
@@ -50,6 +50,7 @@ export default function HistoryPage() {
   }
 
   useEffect(() => { load(); loadStats() }, [load])
+  useEffect(() => { if (visible) { load(); loadStats() } }, [visible])
 
   const handleDelete = async (id: number) => {
     await HistoryDelete(id)
