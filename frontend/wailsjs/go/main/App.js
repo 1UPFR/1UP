@@ -81,6 +81,10 @@ export function SaveMediaInfoJSON(arg1, arg2) {
     return window['go']['main']['App']['SaveMediaInfoJSON'](arg1, arg2);
 }
 
+export function TestUsenet() {
+    return window['go']['main']['App']['TestUsenet']();
+}
+
 export function GetAppVersion() {
     return window['go']['main']['App']['GetAppVersion']();
 }

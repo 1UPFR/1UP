@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.4
+
+### Nouveautes
+- Bouton Tester dans les reglages Usenet (test connexion NNTP + authentification)
+
 ## v1.2.3
 
 ### Corrections

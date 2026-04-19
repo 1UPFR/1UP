@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { GetConfig, SaveConfig, SelectDirectory } from '../../wailsjs/go/main/App'
+import { GetConfig, SaveConfig, SelectDirectory, TestUsenet } from '../../wailsjs/go/main/App'
 
 interface Config {
   nyuu: { host: string; port: number; user: string; password: string; connections: number; group: string; ssl: boolean; extra_args: string }
@@ -12,6 +12,8 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<Config | null>(null)
   const [saved, setSaved] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   useEffect(() => {
     GetConfig().then((c: any) => setConfig(c)).catch(console.error)
@@ -60,6 +62,24 @@ export default function SettingsPage() {
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="card-header" style={{ marginBottom: 10 }}>
           <span className="card-title" style={{ fontSize: 13 }}>Serveur Usenet (Nyuu)</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {testResult && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: testResult.success ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                {testResult.message}
+              </span>
+            )}
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={testing || !config.nyuu.host}
+              onClick={async () => {
+                setTesting(true); setTestResult(null)
+                try { const r = await TestUsenet(); setTestResult(r as any) } catch (e) { setTestResult({ success: false, message: String(e) }) }
+                setTesting(false)
+              }}
+            >
+              {testing ? <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> : 'Tester'}
+            </button>
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 80px 1fr', gap: 12 }}>
           <Field label="Hote" value={config.nyuu.host} onChange={v => update('nyuu.host', v)} placeholder="news.example.com" />

@@ -151,6 +151,11 @@ func (a *App) CheckRelease(releaseName string) (*api.CheckResult, error) {
 	return api.CheckRelease(&a.cfg.API, releaseName)
 }
 
+// TestUsenet teste la connexion au serveur Usenet
+func (a *App) TestUsenet() *nyuu.TestResult {
+	return nyuu.TestConnection(&a.cfg.Nyuu)
+}
+
 // GeneratePar2 lance ParPar sur un fichier
 func (a *App) GeneratePar2(inputPath string) error {
 	return parpar.Run(&a.cfg.ParPar, inputPath, func(p parpar.Progress) {
