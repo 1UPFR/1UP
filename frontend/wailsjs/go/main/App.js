@@ -85,8 +85,8 @@ export function JournalAdd(arg1, arg2) {
     return window['go']['main']['App']['JournalAdd'](arg1, arg2);
 }
 
-export function JournalList() {
-    return window['go']['main']['App']['JournalList']();
+export function JournalList(arg1) {
+    return window['go']['main']['App']['JournalList'](arg1);
 }
 
 export function JournalClear() {

@@ -64,20 +64,37 @@ func (j *DB) Info(msg string)  { j.Add("info", msg) }
 func (j *DB) Error(msg string) { j.Add("error", msg) }
 func (j *DB) Warn(msg string)  { j.Add("warn", msg) }
 
-func (j *DB) List() ([]Entry, error) {
+type ListParams struct {
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+}
+
+type ListResult struct {
+	Entries []Entry `json:"entries"`
+	Total   int     `json:"total"`
+}
+
+func (j *DB) List(params ListParams) (*ListResult, error) {
 	// Nettoyer > 24h avant de lire
 	cutoff := time.Now().Add(-24 * time.Hour).Format(time.RFC3339)
 	j.db.Exec("DELETE FROM journal WHERE created_at < ?", cutoff)
 
+	if params.Limit <= 0 {
+		params.Limit = 50
+	}
+
+	var total int
+	j.db.Get(&total, "SELECT COUNT(*) FROM journal")
+
 	var entries []Entry
-	err := j.db.Select(&entries, "SELECT * FROM journal ORDER BY created_at ASC")
+	err := j.db.Select(&entries, "SELECT * FROM journal ORDER BY created_at DESC LIMIT ? OFFSET ?", params.Limit, params.Offset)
 	if err != nil {
 		return nil, err
 	}
 	if entries == nil {
 		entries = []Entry{}
 	}
-	return entries, nil
+	return &ListResult{Entries: entries, Total: total}, nil
 }
 
 func (j *DB) Clear() {

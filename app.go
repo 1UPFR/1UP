@@ -73,11 +73,11 @@ func (a *App) JournalAdd(level string, message string) {
 }
 
 // JournalList retourne les entrees des 24 dernieres heures
-func (a *App) JournalList() ([]journal.Entry, error) {
+func (a *App) JournalList(params journal.ListParams) (*journal.ListResult, error) {
 	if a.journal == nil {
-		return []journal.Entry{}, nil
+		return &journal.ListResult{Entries: []journal.Entry{}}, nil
 	}
-	return a.journal.List()
+	return a.journal.List(params)
 }
 
 // JournalClear vide le journal

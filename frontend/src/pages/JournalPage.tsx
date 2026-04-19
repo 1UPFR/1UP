@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { JournalList, JournalClear } from '../../wailsjs/go/main/App'
 
 interface JEntry {
@@ -15,6 +15,10 @@ function formatTime(iso: string): string {
 
 function formatDate(iso: string): string {
   const d = new Date(iso)
+  const today = new Date()
+  if (d.toDateString() === today.toDateString()) return "Aujourd'hui"
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1)
+  if (d.toDateString() === yesterday.toDateString()) return 'Hier'
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
 }
 
@@ -36,35 +40,37 @@ const levelStyle: Record<string, { color: string; label: string }> = {
 
 export default function JournalPage({ visible }: { visible?: boolean }) {
   const [entries, setEntries] = useState<JEntry[]>([])
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
+  const limit = 50
 
   const load = async () => {
     try {
-      const list = await JournalList()
-      setEntries((list || []) as any)
+      const result = await JournalList({ limit, offset: page * limit })
+      setEntries((result.entries || []) as any)
+      setTotal(result.total || 0)
     } catch {}
   }
 
-  useEffect(() => { load() }, [])
-  useEffect(() => { if (visible) load() }, [visible])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [entries])
+  useEffect(() => { load() }, [page])
+  useEffect(() => { if (visible) { setPage(0); load() } }, [visible])
 
   const handleClear = async () => {
     await JournalClear()
     setEntries([])
+    setTotal(0)
+    setPage(0)
   }
 
   const groups = groupByDate(entries)
+  const totalPages = Math.ceil(total / limit)
 
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
           <h1 className="page-title">Journal</h1>
-          <p className="page-subtitle text-secondary">Dernières 24 heures — {entries.length} entree{entries.length > 1 ? 's' : ''}</p>
+          <p className="page-subtitle text-secondary">24 dernieres heures — {total} entree{total > 1 ? 's' : ''}</p>
         </div>
         {entries.length > 0 && (
           <button className="btn btn-ghost btn-sm" onClick={handleClear}>Effacer</button>
@@ -76,12 +82,10 @@ export default function JournalPage({ visible }: { visible?: boolean }) {
           <p className="text-muted">Aucune activite dans les dernieres 24 heures</p>
         </div>
       ) : (
-        <div style={{ maxHeight: 'calc(100vh - 140px)', overflowY: 'auto' }}>
+        <>
           {Array.from(groups.entries()).map(([date, items]) => (
             <div key={date} style={{ marginBottom: 16 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <span className="text-muted text-xs" style={{ fontWeight: 700, letterSpacing: 1 }}>{date}</span>
                 <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
                 <span className="text-muted text-xs">{items.length}</span>
@@ -115,8 +119,15 @@ export default function JournalPage({ visible }: { visible?: boolean }) {
               </div>
             </div>
           ))}
-          <div ref={bottomRef} />
-        </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+              <button className="btn btn-ghost btn-sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Precedent</button>
+              <span className="text-secondary text-sm" style={{ lineHeight: '30px' }}>{page + 1} / {totalPages}</span>
+              <button className="btn btn-ghost btn-sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Suivant</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )

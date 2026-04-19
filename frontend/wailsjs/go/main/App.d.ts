@@ -19,7 +19,7 @@ export function ManualUpload(arg1: string, arg2: string, arg3: string, arg4: str
 export function CheckRelease(arg1: string): Promise<{code: number; Explain: string; exists: boolean}>;
 export function SaveMediaInfoJSON(arg1: string, arg2: string): Promise<string>;
 export function JournalAdd(arg1: string, arg2: string): Promise<void>;
-export function JournalList(): Promise<any[]>;
+export function JournalList(arg1: any): Promise<any>;
 export function JournalClear(): Promise<void>;
 export function TestUsenet(): Promise<{success: boolean; message: string}>;
 export function GetAppVersion(): Promise<string>;

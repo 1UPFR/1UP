@@ -11,6 +11,7 @@
 ### Interface
 - MediaInfo : barre verticale separatrice entre les 2 colonnes
 - Mise a jour : l'application se ferme apres ouverture du lien de telechargement
+- Journal : plus recents en haut, pagination, groupement par date (Aujourd'hui/Hier)
 
 ## v1.2.4
 
