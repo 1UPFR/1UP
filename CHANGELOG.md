@@ -1,10 +1,5 @@
 # Changelog
 
-## v1.1.1
-
-### Interface
-- Menu contextuel custom (Couper/Copier/Coller/Tout selectionner)
-
 ## v1.1.0
 
 ### Reglages
