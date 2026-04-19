@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.2
+
+### Nouveautes
+- Version Web : authentification login/pass optionnelle (--login --pass)
+- Page de login integree avec cookie de session 30 jours
+
 ## v1.2.1
 
 ### Nouveautes

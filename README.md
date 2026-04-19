@@ -53,7 +53,13 @@ chmod +x 1up-cli-*-linux-amd64
 
 ```bash
 chmod +x 1up-web-*-linux-amd64
+
+# Sans authentification
 ./1up-web-*-linux-amd64 --host 0.0.0.0 --port 8080
+
+# Avec authentification
+./1up-web-*-linux-amd64 --host 0.0.0.0 --port 8080 --login admin --pass motdepasse
+
 # Ouvrir http://votre-ip:8080
 ```
 
