@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0
+
+### Nouveautes
+- Journal persistant SQLite (24 dernieres heures)
+- Page Journal refaite : groupement par date, niveaux colores (info/warn/error)
+- Le journal survit a la fermeture de l'application
+- Nettoyage automatique des entrees > 24h
+
 ## v1.2.4
 
 ### Nouveautes
