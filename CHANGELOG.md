@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.2.0
+
+### MediaInfo
+- Remplacement mediainfo.js npm par MediaInfoWasm natif (Emscripten)
+- JSON full identique a mediainfo CLI (CompleteName, @ref)
+
+### Securite
+- URLs API et proxy TMDB retirees du code source
+- Injection via secrets GitHub au build (ldflags)
+
+### Interface
+- Menu contextuel natif (copier/coller)
+- Annonce Discord automatique a chaque release
+- Changelog integre aux releases GitHub
+
 ## v1.1.0
 
 ### Reglages
