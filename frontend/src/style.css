@@ -175,9 +175,13 @@ body {
 
 /* Grid */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.grid-2-sep { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-.grid-2-sep > * { padding: 6px 12px; }
-.grid-2-sep > :nth-child(odd) { border-right: 1px solid var(--border-color); }
+.grid-2-sep { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; position: relative; }
+.grid-2-sep > * { padding: 4px 0; }
+.grid-2-sep::before {
+  content: ''; position: absolute;
+  left: 50%; top: 8px; bottom: 8px; width: 1px;
+  background: var(--color-gradient);
+}
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
 
 /* Progress */
