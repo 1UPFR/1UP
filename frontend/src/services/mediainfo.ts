@@ -77,8 +77,8 @@ async function analyzeFileNative(filePath: string): Promise<{ parsed: any; json:
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
 
     // Feed data
-    const result = MI.Open_Buffer_Continue(arr, arr.length)
-    const seekTo = MI.Open_Buffer_Continue_GoTo_Get()
+    const result = MI.Open_Buffer_Continue(arr)
+    const seekTo = MI.Open_Buffer_Continue_Goto_Get()
 
     if (seekTo !== -1) {
       offset = Number(seekTo)
