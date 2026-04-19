@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { SelectFile, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease, GetConfig } from '../../wailsjs/go/main/App'
+import { SelectFile, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff, OnFileDrop, OnFileDropOff } from '../../wailsjs/runtime/runtime'
 import { getMediaInfoJS, getMediaInfoJSON, type ParsedMediaInfo } from '../services/mediainfo'
 
@@ -234,7 +234,7 @@ export default function UploadPage({ addLog, logs }: Props) {
               <span className="card-title" style={{ fontSize: 13 }}>MediaInfo</span>
               <span className="badge badge-success">OK</span>
             </div>
-            <div className="grid-2" style={{ gap: 2 }}>
+            <div className="grid-2-sep" style={{ gap: 12 }}>
               <div className="info-row"><span className="info-label">Resolution</span><span className="info-value">{selected.mediaInfo.resolution}</span></div>
               <div className="info-row"><span className="info-label">Video</span><span className="info-value">{selected.mediaInfo.videoCodec}</span></div>
               <div className="info-row"><span className="info-label">Audio</span><span className="info-value">{selected.mediaInfo.audioCodec}</span></div>
