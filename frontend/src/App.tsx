@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { BrowserOpenURL } from '../wailsjs/runtime/runtime'
+import { BrowserOpenURL, Quit } from '../wailsjs/runtime/runtime'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import JournalPage from './pages/JournalPage'
@@ -113,7 +113,7 @@ export default function App() {
               <button
                 className="btn btn-primary btn-lg"
                 style={{ justifyContent: 'center', width: '100%' }}
-                onClick={() => BrowserOpenURL(update.url)}
+                onClick={() => { BrowserOpenURL(update.url); setTimeout(() => Quit(), 500) }}
               >
                 Telecharger v{update.version}
               </button>

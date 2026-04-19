@@ -10,6 +10,7 @@
 
 ### Interface
 - MediaInfo : barre verticale separatrice entre les 2 colonnes
+- Mise a jour : l'application se ferme apres ouverture du lien de telechargement
 
 ## v1.2.4
 
