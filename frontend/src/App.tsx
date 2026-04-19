@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { BrowserOpenURL } from '../wailsjs/runtime/runtime'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import JournalPage from './pages/JournalPage'
@@ -108,15 +109,13 @@ export default function App() {
               <p className="text-muted text-sm" style={{ marginBottom: 24 }}>
                 Veuillez mettre a jour pour continuer a utiliser 1UP.
               </p>
-              <a
-                href={update.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="btn btn-primary btn-lg"
-                style={{ textDecoration: 'none', justifyContent: 'center' }}
+                style={{ justifyContent: 'center', width: '100%' }}
+                onClick={() => BrowserOpenURL(update.url)}
               >
                 Telecharger v{update.version}
-              </a>
+              </button>
             </div>
           </div>
         )}

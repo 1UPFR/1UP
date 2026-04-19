@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.3
+
+### Corrections
+- Bouton mise a jour ouvre le navigateur correctement sur toutes les plateformes
+
 ## v1.2.2
 
 ### Nouveautes
