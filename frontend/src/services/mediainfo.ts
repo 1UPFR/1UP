@@ -100,7 +100,23 @@ async function analyzeFileNative(filePath: string): Promise<{ parsed: any; json:
   MI.Close()
   MI.delete()
 
-  return { parsed: JSON.parse(json), json }
+  // Injecter le nom du fichier (non disponible en mode buffer)
+  const fileName = filePath.split(/[/\\]/).pop() || ''
+  const baseName = fileName.replace(/\.[^.]+$/, '')
+  const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.') + 1) : ''
+  const parsed = JSON.parse(json)
+  if (parsed?.media) {
+    parsed.media['@ref'] = fileName
+    const general = parsed.media.track?.find((t: any) => t['@type'] === 'General')
+    if (general) {
+      general.CompleteName = fileName
+      general.FileNameExtension = fileName
+      general.FileName = baseName
+      general.FileExtension = ext
+    }
+  }
+
+  return { parsed, json: JSON.stringify(parsed) }
 }
 
 const langNames: Record<string, string> = {
