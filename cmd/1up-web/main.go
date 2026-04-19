@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/md5"
 	"embed"
 	"encoding/base64"
 	"encoding/json"
@@ -36,11 +37,18 @@ var tmdbProxyBase = ""
 var cfg *config.Config
 var historyDB *history.DB
 
+var authLogin string
+var authPassword string
+
 func main() {
 	host := flag.String("host", "0.0.0.0", "Adresse d'ecoute")
 	port := flag.Int("port", 8080, "Port d'ecoute")
+	login := flag.String("login", "", "Login pour l'acces web")
+	pass := flag.String("pass", "", "Mot de passe pour l'acces web")
 	versionFlag := flag.Bool("version", false, "Afficher la version")
 	flag.Parse()
+	authLogin = *login
+	authPassword = *pass
 
 	if *versionFlag {
 		fmt.Println("1UP Web", AppVersion)
@@ -95,7 +103,12 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", *host, *port)
 	fmt.Printf("1UP Web %s\n", AppVersion)
 	fmt.Printf("Ecoute sur http://%s\n", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	var handler http.Handler = mux
+	if authLogin != "" && authPassword != "" {
+		fmt.Println("Authentification activee")
+		handler = authMiddleware(mux)
+	}
+	log.Fatal(http.ListenAndServe(addr, handler))
 }
 
 // shimMiddleware injecte le shim Wails dans index.html
@@ -327,6 +340,95 @@ const wailsShimJS = `
   }
 })();
 `
+
+// Authentification
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Page de login et assets toujours accessibles
+		if r.URL.Path == "/login" || r.URL.Path == "/api/login" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Verifier le cookie de session
+		cookie, err := r.Cookie("1up_session")
+		if err != nil || cookie.Value != authSessionToken() {
+			if r.URL.Path[:4] == "/api" {
+				http.Error(w, `{"error":"non autorise"}`, 401)
+			} else {
+				http.Redirect(w, r, "/login", 302)
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func authSessionToken() string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(authLogin+":"+authPassword)))
+}
+
+func init() {
+	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/api/login", handleAPILogin)
+}
+
+func handleLogin(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!DOCTYPE html>
+<html><head><title>1UP - Login</title>
+<style>
+body { background: #0d1117; color: #f0f2f5; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+.box { background: #161b26; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; width: 320px; text-align: center; }
+h1 { color: #22c55e; margin-bottom: 24px; font-size: 28px; }
+input { width: 100%; padding: 10px; margin-bottom: 12px; background: #1a1f2e; border: 1px solid #1e293b; border-radius: 8px; color: #f0f2f5; font-size: 14px; box-sizing: border-box; }
+input:focus { outline: none; border-color: #22c55e; }
+button { width: 100%; padding: 12px; background: linear-gradient(135deg, #22c55e, #06b6d4); border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.err { color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none; }
+</style></head><body>
+<div class="box">
+<h1>1UP</h1>
+<div class="err" id="err">Identifiants incorrects</div>
+<form onsubmit="return doLogin()">
+<input type="text" id="login" placeholder="Login" autocomplete="username" autofocus />
+<input type="password" id="pass" placeholder="Mot de passe" autocomplete="current-password" />
+<button type="submit">Connexion</button>
+</form>
+</div>
+<script>
+function doLogin() {
+  fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ login: document.getElementById('login').value, password: document.getElementById('pass').value }) })
+    .then(r => r.json()).then(r => { if (r.ok) window.location = '/'; else document.getElementById('err').style.display = 'block'; });
+  return false;
+}
+</script></body></html>`)
+}
+
+func handleAPILogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, "POST requis", 405)
+		return
+	}
+	var req struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+
+	if req.Login == authLogin && req.Password == authPassword {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "1up_session",
+			Value:    authSessionToken(),
+			Path:     "/",
+			MaxAge:   86400 * 30,
+			HttpOnly: true,
+		})
+		jsonResponse(w, map[string]bool{"ok": true})
+	} else {
+		jsonResponse(w, map[string]bool{"ok": false})
+	}
+}
 
 func jsonResponse(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
