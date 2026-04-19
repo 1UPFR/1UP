@@ -92,6 +92,34 @@ export default function App() {
       </aside>
 
       <main className="main-content">
+        {update && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 9999,
+            background: 'rgba(13,17,23,0.95)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ textAlign: 'center', maxWidth: 400 }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>&#9888;</div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Mise a jour requise</h2>
+              <p className="text-secondary" style={{ marginBottom: 16, lineHeight: 1.6 }}>
+                La version <strong>v{update.version}</strong> est disponible.<br />
+                Vous utilisez la version <strong>v{version}</strong>.
+              </p>
+              <p className="text-muted text-sm" style={{ marginBottom: 24 }}>
+                Veuillez mettre a jour pour continuer a utiliser 1UP.
+              </p>
+              <a
+                href={update.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary btn-lg"
+                style={{ textDecoration: 'none', justifyContent: 'center' }}
+              >
+                Telecharger v{update.version}
+              </a>
+            </div>
+          </div>
+        )}
         <div style={{ display: page === 'upload' ? undefined : 'none', height: '100%' }}>
           <UploadPage addLog={addLog} logs={logs} />
         </div>

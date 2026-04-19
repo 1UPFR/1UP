@@ -20,6 +20,7 @@ interface QueueItem {
   isISO: boolean
   duplicate?: boolean
   duplicateMsg?: string
+  analyzed: boolean
   status: ItemStatus
   step?: string
   error?: string
@@ -53,6 +54,7 @@ function makeItem(path: string): QueueItem {
     path,
     name: path.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || path,
     isISO: ext === '.iso',
+    analyzed: false,
     status: 'pending',
     parparPercent: 0,
     nyuuPercent: 0,
@@ -166,18 +168,18 @@ export default function UploadPage({ addLog, logs }: Props) {
         addLog(`[${item.name}] TMDB: ${d.title} (${d.year})`)
       }
     } catch { addLog(`[${item.name}] TMDB: aucun resultat`) }
-    updateItem(item.id, { status: 'pending', step: undefined })
+    updateItem(item.id, { status: 'pending', step: undefined, analyzed: true })
   }, [addLog, updateItem])
 
   useEffect(() => {
-    const pending = queue.filter(i => i.status === 'pending' && !i.mediaInfo)
+    const pending = queue.filter(i => i.status === 'pending' && !i.analyzed)
     for (const item of pending) analyzeItem(item)
   }, [queue.length])
 
   // Traitement sequentiel
   const processNext = useCallback(async () => {
     if (processingRef.current) return
-    const next = queueRef.current.find(i => i.status === 'pending' && i.mediaInfo)
+    const next = queueRef.current.find(i => i.status === 'pending' && (i.mediaInfo || i.isISO))
     if (!next) return
     processingRef.current = true
     setSelectedId(next.id)
@@ -202,7 +204,7 @@ export default function UploadPage({ addLog, logs }: Props) {
   const handleClearDone = () => { setQueue(q => q.filter(i => i.status !== 'done' && i.status !== 'error')) }
 
   const selected = queue.find(i => i.id === selectedId)
-  const pendingCount = queue.filter(i => i.status === 'pending' && i.mediaInfo).length
+  const pendingCount = queue.filter(i => i.status === 'pending' && (i.mediaInfo || i.isISO)).length
   const isProcessing = !!queue.find(i => i.status === 'processing')
   const doneCount = queue.filter(i => i.status === 'done').length
   const errorCount = queue.filter(i => i.status === 'error').length

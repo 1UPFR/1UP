@@ -1,8 +1,13 @@
 # Changelog
 
-## v1.2.0.1
+## v1.2.1
+
+### Nouveautes
+- Blocage de l'application si une mise a jour est disponible
+- Ecran de mise a jour avec lien de telechargement
 
 ### Corrections
+- ISO : bouton Lancer visible, plus de boucle d'analyse infinie
 - Historique : rechargement auto quand la page devient visible
 - MediaInfo JSON : injection CompleteName et @ref dans le JSON natif
 
