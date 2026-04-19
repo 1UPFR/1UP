@@ -104,19 +104,19 @@ async function analyzeFileNative(filePath: string): Promise<{ parsed: any; json:
   const fileName = filePath.split(/[/\\]/).pop() || ''
   const baseName = fileName.replace(/\.[^.]+$/, '')
   const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.') + 1) : ''
-  const parsed = JSON.parse(json)
-  if (parsed?.media) {
-    parsed.media['@ref'] = fileName
-    const general = parsed.media.track?.find((t: any) => t['@type'] === 'General')
-    if (general) {
-      general.CompleteName = fileName
-      general.FileNameExtension = fileName
-      general.FileName = baseName
-      general.FileExtension = ext
-    }
+
+  // Injection dans le JSON string natif pour garder le formatage
+  let fixedJson = json.replace('"@ref":""', '"@ref":"' + fileName + '"')
+
+  // Injecter CompleteName apres le premier @type General
+  const insertAfter = '"StreamKindID":"0",'
+  const insertFields = '\n"CompleteName":"' + fileName + '",\n"FileNameExtension":"' + fileName + '",\n"FileName":"' + baseName + '",\n"FileExtension":"' + ext + '",'
+  const idx = fixedJson.indexOf(insertAfter)
+  if (idx !== -1) {
+    fixedJson = fixedJson.slice(0, idx + insertAfter.length) + insertFields + fixedJson.slice(idx + insertAfter.length)
   }
 
-  return { parsed, json: JSON.stringify(parsed) }
+  return { parsed: JSON.parse(fixedJson), json: fixedJson }
 }
 
 const langNames: Record<string, string> = {
