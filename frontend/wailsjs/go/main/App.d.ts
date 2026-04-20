@@ -1,6 +1,6 @@
 export function GetConfig(): Promise<any>;
 export function SaveConfig(arg1: any): Promise<void>;
-export function SelectFile(): Promise<string>;
+export function SelectFiles(): Promise<string[]>;
 export function SelectDirectory(): Promise<string>;
 export function GeneratePar2(arg1: string): Promise<void>;
 export function PostToUsenet(arg1: string[], arg2: string, arg3: string): Promise<any>;

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.5
+
+### Interface
+- Selection multiple de fichiers (Ctrl+clic) dans le selecteur natif
+
 ## v1.3.4
 
 ### Corrections

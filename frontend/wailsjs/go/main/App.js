@@ -9,8 +9,8 @@ export function SaveConfig(arg1) {
     return window['go']['main']['App']['SaveConfig'](arg1);
 }
 
-export function SelectFile() {
-    return window['go']['main']['App']['SelectFile']();
+export function SelectFiles() {
+    return window['go']['main']['App']['SelectFiles']();
 }
 
 export function SelectDirectory() {

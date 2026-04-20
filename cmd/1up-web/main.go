@@ -155,7 +155,7 @@ const wailsShimJS = `
   window.go = { main: { App: {
     GetConfig: () => call('/api/config'),
     SaveConfig: (cfg) => call('/api/config/save', cfg),
-    SelectFile: () => _fileBrowser({mode:'file', filter:''}),
+    SelectFiles: () => _fileBrowser({mode:'file', filter:''}).then(p => p ? [p] : []),
     SelectDirectory: () => _fileBrowser({mode:'dir', filter:'dirs'}),
     SelectFileWithFilter: (title, pattern) => _fileBrowser({mode:'file', filter:'', title}),
     ProcessFile: (path, queueID) => new Promise((resolve, reject) => {

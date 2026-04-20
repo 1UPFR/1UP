@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { SelectFile, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease } from '../../wailsjs/go/main/App'
+import { SelectFiles, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff, OnFileDrop, OnFileDropOff } from '../../wailsjs/runtime/runtime'
 import { getMediaInfoJS, getMediaInfoJSON, type ParsedMediaInfo } from '../services/mediainfo'
 
@@ -198,7 +198,7 @@ export default function UploadPage({ addLog, logs }: Props) {
   }, [addLog, updateItem])
 
   const handleBrowse = async () => {
-    try { const p = await SelectFile(); if (p) addFiles([p]) } catch (e) { addLog('Erreur: ' + e) }
+    try { const paths = await SelectFiles(); if (paths && paths.length > 0) addFiles(paths) } catch (e) { addLog('Erreur: ' + e) }
   }
   const handleRemove = (id: string) => { setQueue(q => q.filter(i => i.id !== id)); if (selectedId === id) setSelectedId(null) }
   const handleClearDone = () => { setQueue(q => q.filter(i => i.status !== 'done' && i.status !== 'error')) }

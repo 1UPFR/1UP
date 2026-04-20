@@ -117,10 +117,10 @@ func (a *App) SaveConfig(cfg config.Config) error {
 	return a.cfg.Save()
 }
 
-// SelectFile ouvre un selecteur de fichier natif
-func (a *App) SelectFile() (string, error) {
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Selectionner un fichier",
+// SelectFiles ouvre un selecteur de fichiers multiples
+func (a *App) SelectFiles() ([]string, error) {
+	return runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Selectionner des fichiers",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "Fichiers video", Pattern: "*.mkv;*.mp4;*.iso"},
 		},
