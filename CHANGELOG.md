@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.4
+
+### Corrections
+- Journal : ecriture asynchrone par batch (plus de pertes quand ca va vite)
+- SQLite WAL mode pour les ecritures non-bloquantes
+
 ## v1.3.3
 
 ### Interface
