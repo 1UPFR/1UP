@@ -145,7 +145,7 @@ func (a *App) SelectFileWithFilter(title string, pattern string) (string, error)
 }
 
 // ManualUpload envoie un NZB + mediainfo/bdinfo existants sur l'API
-func (a *App) ManualUpload(releaseName string, nzbPath string, mediainfoPath string, bdinfoFullPath string, bdinfoMiniPath string) (*api.UploadResult, error) {
+func (a *App) ManualUpload(releaseName string, nzbPath string, mediainfoPath string, bdinfoFullPath string) (*api.UploadResult, error) {
 	if !a.cfg.API.Enabled || a.cfg.API.APIKey == "" {
 		return nil, fmt.Errorf("API desactivee ou cle manquante")
 	}
@@ -166,7 +166,6 @@ func (a *App) ManualUpload(releaseName string, nzbPath string, mediainfoPath str
 		NZBPath:           nzbPath,
 		MediaInfoJSONPath: mediainfoPath,
 		BDInfoFullPath:    bdinfoFullPath,
-		BDInfoMiniPath:    bdinfoMiniPath,
 	})
 
 	if err != nil {
@@ -332,22 +331,39 @@ func (a *App) ProcessFile(inputPath string, queueID string) error {
 	apiResultStr := ""
 	isISO := strings.EqualFold(ext, ".iso")
 
-	// 4. Upload API (pas pour les ISO)
-	if !isISO && a.cfg.API.Enabled && a.cfg.API.APIKey != "" {
-		emit("status", "Upload API...")
-
-		jsonPath := filepath.Join(outputDir, releaseName+".json")
-		if _, err := os.Stat(jsonPath); err == nil {
-			uploadResult, err := api.Upload(&a.cfg.API, releaseName, result.NZBPath, jsonPath)
-			if err != nil {
-				if a.history != nil {
-					a.history.Update(historyID, "error", result.NZBPath, "", err.Error())
+	// 4. Upload API
+	if a.cfg.API.Enabled && a.cfg.API.APIKey != "" {
+		if isISO {
+			// ISO : chercher un fichier BDInfo compagnon
+			bdinfoPath := a.FindBDInfoFile(inputPath)
+			if bdinfoPath != "" {
+				emit("status", "Upload API (BDInfo)...")
+				uploadResult, err := api.UploadISO(&a.cfg.API, releaseName, result.NZBPath, bdinfoPath)
+				if err != nil {
+					if a.history != nil {
+						a.history.Update(historyID, "error", result.NZBPath, "", err.Error())
+					}
+					return fmt.Errorf("erreur upload API: %w", err)
 				}
-				return fmt.Errorf("erreur upload API: %w", err)
+				resultJSON, _ := json.Marshal(uploadResult)
+				apiResultStr = string(resultJSON)
+				emit("upload:result", apiResultStr)
 			}
-			resultJSON, _ := json.Marshal(uploadResult)
-			apiResultStr = string(resultJSON)
-			emit("upload:result", apiResultStr)
+		} else {
+			emit("status", "Upload API...")
+			jsonPath := filepath.Join(outputDir, releaseName+".json")
+			if _, err := os.Stat(jsonPath); err == nil {
+				uploadResult, err := api.Upload(&a.cfg.API, releaseName, result.NZBPath, jsonPath)
+				if err != nil {
+					if a.history != nil {
+						a.history.Update(historyID, "error", result.NZBPath, "", err.Error())
+					}
+					return fmt.Errorf("erreur upload API: %w", err)
+				}
+				resultJSON, _ := json.Marshal(uploadResult)
+				apiResultStr = string(resultJSON)
+				emit("upload:result", apiResultStr)
+			}
 		}
 	}
 
@@ -367,6 +383,35 @@ func (a *App) ProcessFile(inputPath string, queueID string) error {
 
 	emit("status", "Termine")
 	return nil
+}
+
+// FindBDInfoFile cherche un fichier BDInfo compagnon a cote d'un ISO.
+// Cherche : meme nom avec .txt, ou fichier contenant "bdinfo" dans le meme dossier.
+func (a *App) FindBDInfoFile(isoPath string) string {
+	dir := filepath.Dir(isoPath)
+	base := strings.TrimSuffix(filepath.Base(isoPath), filepath.Ext(isoPath))
+
+	// 1. Meme nom avec extension .txt
+	txtPath := filepath.Join(dir, base+".txt")
+	if _, err := os.Stat(txtPath); err == nil {
+		return txtPath
+	}
+
+	// 2. Fichier contenant "bdinfo" dans le nom (meme dossier)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.Contains(strings.ToLower(e.Name()), "bdinfo") {
+			return filepath.Join(dir, e.Name())
+		}
+	}
+
+	return ""
 }
 
 // SetHistoryMediaInfo met a jour les infos media d'une entree historique

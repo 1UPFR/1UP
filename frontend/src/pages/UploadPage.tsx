@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { SelectFiles, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease } from '../../wailsjs/go/main/App'
+import { SelectFiles, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease, FindBDInfoFile } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff, OnFileDrop, OnFileDropOff } from '../../wailsjs/runtime/runtime'
 import { getMediaInfoJS, getMediaInfoJSON, type ParsedMediaInfo } from '../services/mediainfo'
 
@@ -32,6 +32,7 @@ interface QueueItem {
   tmdbGenres?: string[]
   tmdbOverview?: string
   tmdbRating?: number
+  bdinfoPath?: string
   parparPercent: number
   nyuuPercent: number
   nyuuArticles: string
@@ -155,7 +156,18 @@ export default function UploadPage({ addLog, logs }: Props) {
         try { const raw = await getMediaInfoJSON(item.path); await SaveMediaInfoJSON(item.path, raw) } catch {}
       } catch (e) { addLog(`[${item.name}] MediaInfo erreur: ${e}`) }
     } else {
-      addLog(`[${item.name}] ISO detecte, pas de MediaInfo`)
+      // ISO : chercher un fichier BDInfo compagnon
+      try {
+        const bdinfo = await FindBDInfoFile(item.path)
+        if (bdinfo) {
+          updateItem(item.id, { bdinfoPath: bdinfo })
+          addLog(`[${item.name}] BDInfo trouve: ${bdinfo.split(/[/\\]/).pop()}`)
+        } else {
+          addLog(`[${item.name}] ISO detecte, pas de BDInfo`)
+        }
+      } catch {
+        addLog(`[${item.name}] ISO detecte, pas de BDInfo`)
+      }
     }
 
     // TMDB

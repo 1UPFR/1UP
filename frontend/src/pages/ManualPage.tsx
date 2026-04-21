@@ -6,7 +6,6 @@ export default function ManualPage() {
   const [nzbPath, setNzbPath] = useState('')
   const [mediainfoPath, setMediainfoPath] = useState('')
   const [bdinfoFullPath, setBdinfoFullPath] = useState('')
-  const [bdinfoMiniPath, setBdinfoMiniPath] = useState('')
 
   const [checking, setChecking] = useState(false)
   const [checkResult, setCheckResult] = useState<{ exists: boolean; msg: string } | null>(null)
@@ -42,14 +41,10 @@ export default function ManualPage() {
   }
 
   const handlePickBDInfoFull = async () => {
-    const path = await SelectFileWithFilter('Selectionner BDInfo Full', '*.*')
+    const path = await SelectFileWithFilter('Selectionner BDInfo', '*.*')
     if (path) setBdinfoFullPath(path)
   }
 
-  const handlePickBDInfoMini = async () => {
-    const path = await SelectFileWithFilter('Selectionner BDInfo Mini', '*.*')
-    if (path) setBdinfoMiniPath(path)
-  }
 
   const handleCheck = async () => {
     if (!releaseName) return
@@ -69,7 +64,7 @@ export default function ManualPage() {
     setUploading(true)
     setUploadResult(null)
     try {
-      const res = await ManualUpload(releaseName, nzbPath, mediainfoPath, bdinfoFullPath, bdinfoMiniPath)
+      const res = await ManualUpload(releaseName, nzbPath, mediainfoPath, bdinfoFullPath)
       setUploadResult({ success: res.success, error: res.error })
     } catch (e) {
       setUploadResult({ success: false, error: String(e) })
@@ -134,24 +129,12 @@ export default function ManualPage() {
           <div className="card">
             <div className="card-header" style={{ marginBottom: 10 }}>
               <span className="card-title" style={{ fontSize: 13 }}>BDInfo</span>
+              {bdinfoFullPath && <span className="badge badge-success" style={{ fontSize: 10 }}>OK</span>}
             </div>
-            <div className="grid-2">
-              <div>
-                <label className="label">BDInfo Full</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" value={bdinfoFullPath ? fileName(bdinfoFullPath) : ''} readOnly placeholder="Optionnel" />
-                  <button className="btn btn-secondary btn-sm" onClick={handlePickBDInfoFull}>...</button>
-                  {bdinfoFullPath && <button className="btn btn-ghost btn-sm" onClick={() => setBdinfoFullPath('')}>&#10005;</button>}
-                </div>
-              </div>
-              <div>
-                <label className="label">BDInfo Mini</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="input" value={bdinfoMiniPath ? fileName(bdinfoMiniPath) : ''} readOnly placeholder="Optionnel" />
-                  <button className="btn btn-secondary btn-sm" onClick={handlePickBDInfoMini}>...</button>
-                  {bdinfoMiniPath && <button className="btn btn-ghost btn-sm" onClick={() => setBdinfoMiniPath('')}>&#10005;</button>}
-                </div>
-              </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="input" value={bdinfoFullPath ? fileName(bdinfoFullPath) : ''} readOnly placeholder="Optionnel" />
+              <button className="btn btn-secondary btn-sm" onClick={handlePickBDInfoFull}>Parcourir</button>
+              {bdinfoFullPath && <button className="btn btn-ghost btn-sm" onClick={() => setBdinfoFullPath('')}>&#10005;</button>}
             </div>
           </div>
         </div>
@@ -164,8 +147,7 @@ export default function ManualPage() {
             </div>
             <div className="info-row"><span className="info-label">NZB</span><span className="info-value">{nzbPath ? '&#10003;' : '-'}</span></div>
             <div className="info-row"><span className="info-label">MediaInfo</span><span className="info-value">{mediainfoPath ? '&#10003;' : '-'}</span></div>
-            <div className="info-row"><span className="info-label">BDInfo Full</span><span className="info-value">{bdinfoFullPath ? '&#10003;' : '-'}</span></div>
-            <div className="info-row"><span className="info-label">BDInfo Mini</span><span className="info-value">{bdinfoMiniPath ? '&#10003;' : '-'}</span></div>
+            <div className="info-row"><span className="info-label">BDInfo</span><span className="info-value">{bdinfoFullPath ? '&#10003;' : '-'}</span></div>
             {checkResult && (
               <div className="info-row">
                 <span className="info-label">Statut</span>

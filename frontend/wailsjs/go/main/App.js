@@ -69,8 +69,12 @@ export function SelectFileWithFilter(arg1, arg2) {
     return window['go']['main']['App']['SelectFileWithFilter'](arg1, arg2);
 }
 
-export function ManualUpload(arg1, arg2, arg3, arg4, arg5) {
-    return window['go']['main']['App']['ManualUpload'](arg1, arg2, arg3, arg4, arg5);
+export function ManualUpload(arg1, arg2, arg3, arg4) {
+    return window['go']['main']['App']['ManualUpload'](arg1, arg2, arg3, arg4);
+}
+
+export function FindBDInfoFile(arg1) {
+    return window['go']['main']['App']['FindBDInfoFile'](arg1);
 }
 
 export function CheckRelease(arg1) {

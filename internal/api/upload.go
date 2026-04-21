@@ -133,12 +133,61 @@ func Upload(cfg *config.APIConfig, releaseName string, nzbPath string, mediainfo
 	return result, nil
 }
 
+func UploadISO(cfg *config.APIConfig, releaseName string, nzbPath string, bdinfoPath string) (*UploadResult, error) {
+	if cfg.APIKey == "" {
+		return nil, fmt.Errorf("cle API non configuree")
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	writer.WriteField("upload", "upload")
+	writer.WriteField("rlsname", releaseName)
+
+	if err := addFile(writer, "nzb", nzbPath); err != nil {
+		return nil, fmt.Errorf("erreur ajout nzb: %w", err)
+	}
+
+	if err := addFile(writer, "bdinfo_full", bdinfoPath); err != nil {
+		return nil, fmt.Errorf("erreur ajout bdinfo_full: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	apiURL := getURL(cfg)
+	client := &http.Client{Timeout: 60 * time.Second}
+	req, err := http.NewRequest("POST", apiURL, body)
+	if err != nil {
+		return nil, fmt.Errorf("erreur creation requete: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("erreur envoi API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	result := &UploadResult{
+		StatusCode: resp.StatusCode,
+		Success:    resp.StatusCode >= 200 && resp.StatusCode < 300,
+	}
+
+	if !result.Success {
+		respBody, _ := io.ReadAll(resp.Body)
+		result.Error = string(respBody)
+	}
+
+	return result, nil
+}
+
 type ManualUploadParams struct {
 	ReleaseName      string
 	NZBPath          string
 	MediaInfoJSONPath string
 	BDInfoFullPath   string
-	BDInfoMiniPath   string
 }
 
 func UploadManual(cfg *config.APIConfig, params ManualUploadParams) (*UploadResult, error) {
@@ -168,11 +217,6 @@ func UploadManual(cfg *config.APIConfig, params ManualUploadParams) (*UploadResu
 		}
 	}
 
-	if params.BDInfoMiniPath != "" {
-		if err := addFile(writer, "bdinfo_mini", params.BDInfoMiniPath); err != nil {
-			return nil, fmt.Errorf("erreur ajout bdinfo_mini: %w", err)
-		}
-	}
 
 	if err := writer.Close(); err != nil {
 		return nil, err

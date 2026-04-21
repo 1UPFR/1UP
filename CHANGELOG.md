@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.6
+
+### Nouveautes
+- ISO : detection automatique du fichier BDInfo compagnon (meme nom .txt ou fichier contenant "bdinfo")
+- ISO : upload API avec BDInfo dans le champ bdinfo_full quand le fichier est present
+
+### Interface
+- Upload manuel : suppression du champ BDInfo Mini (simplifie en un seul champ BDInfo)
+
 ## v1.3.5
 
 ### Interface
