@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { SelectFiles, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease, FindBDInfoFile } from '../../wailsjs/go/main/App'
+import { SelectFiles, ProcessFile, SaveMediaInfoJSON, SearchTMDB, GetTMDBDetails, CheckRelease, FindBDInfoFile, ParseBDInfo } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff, OnFileDrop, OnFileDropOff } from '../../wailsjs/runtime/runtime'
 import { getMediaInfoJS, getMediaInfoJSON, type ParsedMediaInfo } from '../services/mediainfo'
 
@@ -48,6 +48,13 @@ function getExt(path: string): string {
   return dot >= 0 ? path.substring(dot).toLowerCase() : ''
 }
 
+function validateTeam(name: string): string | null {
+  const m = name.match(/-([A-Za-z0-9]+)$/)
+  if (!m) return 'Pas de team a la fin (ex: -UNFR, -AMB3R)'
+  if (/^(notag|noteam)$/i.test(m[1])) return `Team invalide: ${m[1]}`
+  return null
+}
+
 function makeItem(path: string): QueueItem {
   const ext = getExt(path)
   return {
@@ -90,13 +97,24 @@ export default function UploadPage({ addLog, logs }: Props) {
   const addFiles = useCallback((paths: string[]) => {
     const filtered = paths.filter(p => ALLOWED_EXT.includes(getExt(p)))
     if (filtered.length === 0) return
+    const valid: string[] = []
+    for (const p of filtered) {
+      const name = p.split(/[/\\]/).pop()?.replace(/\.[^.]+$/, '') || p
+      const err = validateTeam(name)
+      if (err) {
+        addLog(`[${name}] Refuse: ${err}`)
+      } else {
+        valid.push(p)
+      }
+    }
+    if (valid.length === 0) return
     setQueue(q => {
       const existing = new Set(q.map(i => i.path))
-      const newItems = filtered.filter(p => !existing.has(p)).map(makeItem)
+      const newItems = valid.filter(p => !existing.has(p)).map(makeItem)
       if (newItems.length > 0) setSelectedId(newItems[0].id)
       return [...q, ...newItems]
     })
-  }, [])
+  }, [addLog])
 
   // Drag & drop
   useEffect(() => {
@@ -157,11 +175,17 @@ export default function UploadPage({ addLog, logs }: Props) {
       } catch (e) { addLog(`[${item.name}] MediaInfo erreur: ${e}`) }
     } else {
       // ISO : chercher un fichier BDInfo compagnon
+      updateItem(item.id, { step: 'Recherche BDInfo...' })
       try {
-        const bdinfo = await FindBDInfoFile(item.path)
-        if (bdinfo) {
-          updateItem(item.id, { bdinfoPath: bdinfo })
-          addLog(`[${item.name}] BDInfo trouve: ${bdinfo.split(/[/\\]/).pop()}`)
+        const bdinfoFile = await FindBDInfoFile(item.path)
+        if (bdinfoFile) {
+          updateItem(item.id, { bdinfoPath: bdinfoFile })
+          addLog(`[${item.name}] BDInfo trouve: ${bdinfoFile.split(/[/\\]/).pop()}`)
+          try {
+            const bi = await ParseBDInfo(bdinfoFile)
+            updateItem(item.id, { mediaInfo: bi as ParsedMediaInfo })
+            addLog(`[${item.name}] BDInfo OK`)
+          } catch (e) { addLog(`[${item.name}] BDInfo parse erreur: ${e}`) }
         } else {
           addLog(`[${item.name}] ISO detecte, pas de BDInfo`)
         }
@@ -243,7 +267,7 @@ export default function UploadPage({ addLog, logs }: Props) {
         {selected?.mediaInfo && (
           <div className="card" style={{ marginTop: 12 }}>
             <div className="card-header" style={{ marginBottom: 8 }}>
-              <span className="card-title" style={{ fontSize: 13 }}>MediaInfo</span>
+              <span className="card-title" style={{ fontSize: 13 }}>{selected.isISO ? 'BDInfo' : 'MediaInfo'}</span>
               <span className="badge badge-success">OK</span>
             </div>
             <div className="grid-2-sep" style={{ gap: 12 }}>

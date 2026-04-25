@@ -17,6 +17,7 @@ export function HistoryClear(): Promise<void>;
 export function SelectFileWithFilter(arg1: string, arg2: string): Promise<string>;
 export function ManualUpload(arg1: string, arg2: string, arg3: string, arg4: string): Promise<any>;
 export function FindBDInfoFile(arg1: string): Promise<string>;
+export function ParseBDInfo(arg1: string): Promise<{resolution: string; videoCodec: string; audioCodec: string; audioLanguages: string; subtitleLanguages: string; hdrFormat: string; duration: string; fileSize: number; width: number; height: number; bitrate: number; frameRate: number}>;
 export function CheckRelease(arg1: string): Promise<{code: number; Explain: string; exists: boolean}>;
 export function SaveMediaInfoJSON(arg1: string, arg2: string): Promise<string>;
 export function JournalAdd(arg1: string, arg2: string): Promise<void>;

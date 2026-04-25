@@ -16,6 +16,7 @@ import (
 	"github.com/1UPFR/1UP/internal/config"
 	"github.com/1UPFR/1UP/internal/nyuu"
 	"github.com/1UPFR/1UP/internal/parpar"
+	"github.com/1UPFR/1UP/internal/relparse"
 )
 
 //go:embed binaries
@@ -81,6 +82,10 @@ func main() {
 func processFile(cfg *config.Config, inputPath string, noAPI bool) error {
 	ext := filepath.Ext(inputPath)
 	releaseName := strings.TrimSuffix(filepath.Base(inputPath), ext)
+
+	if err := relparse.ValidateTeam(releaseName); err != nil {
+		return err
+	}
 
 	outputDir := cfg.OutputDir
 	if outputDir == "" {

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var appVersion = "1.3.6"
+var appVersion = "1.3.7"
 
 type UpdateInfo struct {
 	Available bool   `json:"available"`

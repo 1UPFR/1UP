@@ -11,11 +11,13 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/1UPFR/1UP/internal/api"
+	"github.com/1UPFR/1UP/internal/bdinfo"
 	"github.com/1UPFR/1UP/internal/config"
 	"github.com/1UPFR/1UP/internal/history"
 	"github.com/1UPFR/1UP/internal/journal"
 	"github.com/1UPFR/1UP/internal/nyuu"
 	"github.com/1UPFR/1UP/internal/parpar"
+	"github.com/1UPFR/1UP/internal/relparse"
 )
 
 var apiBaseURL = ""
@@ -269,6 +271,11 @@ func (a *App) SaveMediaInfoJSON(inputPath string, mediainfoJSON string) (string,
 func (a *App) ProcessFile(inputPath string, queueID string) error {
 	ext := filepath.Ext(inputPath)
 	releaseName := strings.TrimSuffix(filepath.Base(inputPath), ext)
+
+	if err := relparse.ValidateTeam(releaseName); err != nil {
+		return err
+	}
+
 	outputDir := a.resolveOutputDir(inputPath)
 	os.MkdirAll(outputDir, 0755)
 
@@ -412,6 +419,11 @@ func (a *App) FindBDInfoFile(isoPath string) string {
 	}
 
 	return ""
+}
+
+// ParseBDInfo parse un fichier BDInfo et retourne les infos extraites
+func (a *App) ParseBDInfo(path string) (*bdinfo.ParsedBDInfo, error) {
+	return bdinfo.ParseFile(path)
 }
 
 // SetHistoryMediaInfo met a jour les infos media d'une entree historique

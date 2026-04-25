@@ -356,7 +356,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		// Verifier le cookie de session
 		cookie, err := r.Cookie("1up_session")
 		if err != nil || cookie.Value != authSessionToken() {
-			if r.URL.Path[:4] == "/api" {
+			if strings.HasPrefix(r.URL.Path, "/api") {
 				http.Error(w, `{"error":"non autorise"}`, 401)
 			} else {
 				http.Redirect(w, r, "/login", 302)

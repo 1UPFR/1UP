@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.3.7
+
+### Nouveautes
+- ISO : extraction des infos depuis le BDInfo compagnon (resolution, codec, audio, HDR, langues, sous-titres) affichee comme MediaInfo
+- Validation du nom de release : refus si pas de team a la fin ou team "notag"/"noteam" (CLI, Desktop, Web)
+
+### Corrections
+- Version Web : panic au demarrage avec --auth quand le path racine etait demande
+
 ## v1.3.6
 
 ### Nouveautes

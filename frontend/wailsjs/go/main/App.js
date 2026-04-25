@@ -77,6 +77,10 @@ export function FindBDInfoFile(arg1) {
     return window['go']['main']['App']['FindBDInfoFile'](arg1);
 }
 
+export function ParseBDInfo(arg1) {
+    return window['go']['main']['App']['ParseBDInfo'](arg1);
+}
+
 export function CheckRelease(arg1) {
     return window['go']['main']['App']['CheckRelease'](arg1);
 }

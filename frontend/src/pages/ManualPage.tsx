@@ -14,6 +14,14 @@ export default function ManualPage() {
 
   const fileName = (path: string) => path ? path.split(/[/\\]/).pop() || path : ''
 
+  const validateTeam = (name: string): string | null => {
+    const m = name.match(/-([A-Za-z0-9]+)$/)
+    if (!m) return 'Pas de team a la fin (ex: -UNFR, -AMB3R)'
+    if (/^(notag|noteam)$/i.test(m[1])) return `Team invalide: ${m[1]}`
+    return null
+  }
+  const teamError = releaseName ? validateTeam(releaseName) : null
+
   // Extraire le nom de release du NZB
   const handlePickNZB = async () => {
     const path = await SelectFileWithFilter('Selectionner un fichier NZB', '*.nzb')
@@ -72,7 +80,7 @@ export default function ManualPage() {
     setUploading(false)
   }
 
-  const canUpload = nzbPath && releaseName && !uploading
+  const canUpload = nzbPath && releaseName && !uploading && !teamError
 
   return (
     <div>
@@ -103,6 +111,11 @@ export default function ManualPage() {
               {checkResult && (
                 <span style={{ fontSize: 12, fontWeight: 700, color: checkResult.exists ? 'var(--color-warning)' : 'var(--color-success)' }}>
                   {checkResult.msg}
+                </span>
+              )}
+              {teamError && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-danger)' }}>
+                  {teamError}
                 </span>
               )}
             </div>

@@ -1,6 +1,7 @@
 package relparse
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 )
@@ -10,6 +11,22 @@ type ReleaseInfo struct {
 	Year   string
 	Season string
 	IsTV   bool
+}
+
+var teamRe = regexp.MustCompile(`-([A-Za-z0-9]+)$`)
+
+// ValidateTeam verifie que le nom de release contient une team valide a la fin.
+// Rejette l'absence de team et les valeurs "notag" / "noteam" (insensible a la casse).
+func ValidateTeam(name string) error {
+	m := teamRe.FindStringSubmatch(name)
+	if len(m) < 2 {
+		return errors.New("nom de release sans team a la fin (ex: -UNFR, -AMB3R)")
+	}
+	team := strings.ToLower(m[1])
+	if team == "notag" || team == "noteam" {
+		return errors.New("team invalide: " + m[1])
+	}
+	return nil
 }
 
 var (
