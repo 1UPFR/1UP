@@ -93,6 +93,10 @@ func main() {
 	mux.HandleFunc("/api/tmdb/search", handleTMDBSearch)
 	mux.HandleFunc("/api/tmdb/details", handleTMDBDetails)
 
+	// Auth
+	mux.HandleFunc("/login", handleLogin)
+	mux.HandleFunc("/api/login", handleAPILogin)
+
 	// Shim Wails pour le frontend
 	mux.HandleFunc("/wails-shim.js", handleShim)
 
@@ -370,11 +374,6 @@ func authMiddleware(next http.Handler) http.Handler {
 
 func authSessionToken() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(authLogin+":"+authPassword)))
-}
-
-func init() {
-	http.HandleFunc("/login", handleLogin)
-	http.HandleFunc("/api/login", handleAPILogin)
 }
 
 func handleLogin(w http.ResponseWriter, r *http.Request) {

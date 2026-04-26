@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.8
+
+### Corrections
+- Version Web : 404 sur /login avec --auth (handlers enregistres sur le mauvais mux)
+
 ## v1.3.7
 
 ### Nouveautes
