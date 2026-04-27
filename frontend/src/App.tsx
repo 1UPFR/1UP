@@ -22,7 +22,7 @@ export default function App() {
       const next = [...prev, `[${now}] ${msg}`]
       return next.length > 500 ? next.slice(-500) : next
     })
-    JournalAdd(level, msg).catch(() => {})
+    try { JournalAdd(level, msg)?.catch?.(() => {}) } catch {}
   }, [])
 
   useEffect(() => {

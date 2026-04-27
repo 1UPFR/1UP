@@ -24,6 +24,7 @@ import (
 	"github.com/1UPFR/1UP/internal/config"
 	"github.com/1UPFR/1UP/internal/relparse"
 	"github.com/1UPFR/1UP/internal/history"
+	"github.com/1UPFR/1UP/internal/journal"
 	"github.com/1UPFR/1UP/internal/nyuu"
 	"github.com/1UPFR/1UP/internal/parpar"
 )
@@ -40,6 +41,7 @@ var tmdbProxyBase = ""
 var tmdbAPIKey = ""
 var cfg *config.Config
 var historyDB *history.DB
+var journalDB *journal.DB
 
 var authLogin string
 var authPassword string
@@ -73,6 +75,10 @@ func main() {
 	if err != nil {
 		log.Printf("Erreur historique: %v", err)
 	}
+	journalDB, err = journal.Open()
+	if err != nil {
+		log.Printf("Erreur journal: %v", err)
+	}
 
 	mux := http.NewServeMux()
 
@@ -93,6 +99,9 @@ func main() {
 	mux.HandleFunc("/api/browse", handleBrowse)
 	mux.HandleFunc("/api/find-bdinfo", handleFindBDInfo)
 	mux.HandleFunc("/api/parse-bdinfo", handleParseBDInfo)
+	mux.HandleFunc("/api/journal/add", handleJournalAdd)
+	mux.HandleFunc("/api/journal/list", handleJournalList)
+	mux.HandleFunc("/api/journal/clear", handleJournalClear)
 	mux.HandleFunc("/api/tmdb/search", handleTMDBSearch)
 	mux.HandleFunc("/api/tmdb/details", handleTMDBDetails)
 
@@ -199,6 +208,9 @@ const wailsShimJS = `
     HistoryClear: () => call('/api/history/clear', {}),
     FindBDInfoFile: (path) => call('/api/find-bdinfo?path=' + encodeURIComponent(path)).then(r => r.path || ''),
     ParseBDInfo: (path) => call('/api/parse-bdinfo?path=' + encodeURIComponent(path)),
+    JournalAdd: (level, msg) => call('/api/journal/add', {level, msg}),
+    JournalList: (params) => call('/api/journal/list', params || {}),
+    JournalClear: () => call('/api/journal/clear', {}),
     SetHistoryMediaInfo: () => {},
     SetHistoryTMDB: () => {},
   }}};
@@ -472,6 +484,52 @@ func handleConfigSave(w http.ResponseWriter, r *http.Request) {
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, map[string]string{"version": AppVersion})
+}
+
+func handleJournalAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, "POST requis", 405)
+		return
+	}
+	var body struct {
+		Level string `json:"level"`
+		Msg   string `json:"msg"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		jsonError(w, err.Error(), 400)
+		return
+	}
+	if journalDB != nil {
+		journalDB.Add(body.Level, body.Msg)
+	}
+	jsonResponse(w, map[string]bool{"ok": true})
+}
+
+func handleJournalList(w http.ResponseWriter, r *http.Request) {
+	if journalDB == nil {
+		jsonResponse(w, &journal.ListResult{Entries: []journal.Entry{}})
+		return
+	}
+	var params journal.ListParams
+	if r.Method == http.MethodPost {
+		json.NewDecoder(r.Body).Decode(&params)
+	}
+	if params.Limit == 0 {
+		params.Limit = 50
+	}
+	result, err := journalDB.List(params)
+	if err != nil {
+		jsonError(w, err.Error(), 500)
+		return
+	}
+	jsonResponse(w, result)
+}
+
+func handleJournalClear(w http.ResponseWriter, r *http.Request) {
+	if journalDB != nil {
+		journalDB.Clear()
+	}
+	jsonResponse(w, map[string]bool{"ok": true})
 }
 
 func handleFindBDInfo(w http.ResponseWriter, r *http.Request) {

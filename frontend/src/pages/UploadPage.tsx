@@ -96,7 +96,6 @@ export default function UploadPage({ addLog, logs }: Props) {
   }, [])
 
   const addFiles = useCallback((paths: string[]) => {
-    addLog(`[DEBUG] addFiles called with ${paths.length} path(s): ${paths.join(', ')}`)
     const filtered = paths.filter(p => ALLOWED_EXT.includes(getExt(p)))
     if (filtered.length === 0) return
     const valid: string[] = []
@@ -157,7 +156,6 @@ export default function UploadPage({ addLog, logs }: Props) {
 
   // Analyse MediaInfo + TMDB + check API
   const analyzeItem = useCallback(async (item: QueueItem) => {
-    addLog(`[DEBUG] analyzeItem START id=${item.id} name=${item.name}`)
     updateItem(item.id, { status: 'analyzing', step: 'Verification...' })
 
     // Check API si activee
@@ -183,7 +181,6 @@ export default function UploadPage({ addLog, logs }: Props) {
       updateItem(item.id, { step: 'Recherche BDInfo...' })
       try {
         const bdinfoFile = await FindBDInfoFile(item.path)
-        addLog(`[DEBUG] FindBDInfoFile result for id=${item.id}: "${bdinfoFile}"`)
         if (bdinfoFile) {
           updateItem(item.id, { bdinfoPath: bdinfoFile })
           addLog(`[${item.name}] BDInfo trouve: ${bdinfoFile.split(/[/\\]/).pop()}`)
