@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.4.0
+
+### Corrections
+- Version Web : poster TMDB et annee non affiches (tags JSON manquants pour les champs snake_case poster_path / release_date / first_air_date)
+- Version Web : JournalAdd / JournalList / JournalClear manquants dans le shim, ce qui faisait jeter addLog et logger "ISO detecte, pas de BDInfo" en boucle sur les ISO avec BDInfo
+- addLog durci avec un try/catch pour eviter les cascades d'erreurs si un binding manque
+
+### Robustesse
+- analyzeItem : ref pour empecher tout double-appel sur le meme item
+
 ## v1.3.9
 
 ### Corrections

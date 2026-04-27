@@ -778,8 +778,14 @@ func handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 			body, _ := io.ReadAll(resp.Body)
 			var raw struct {
 				Results []struct {
-					ID int `json:"id"`; Title, Name, Overview, PosterPath, ReleaseDate, FirstAirDate string
-					VoteAverage float64 `json:"vote_average"`
+					ID           int     `json:"id"`
+					Title        string  `json:"title"`
+					Name         string  `json:"name"`
+					Overview     string  `json:"overview"`
+					PosterPath   string  `json:"poster_path"`
+					ReleaseDate  string  `json:"release_date"`
+					FirstAirDate string  `json:"first_air_date"`
+					VoteAverage  float64 `json:"vote_average"`
 				} `json:"results"`
 			}
 			json.Unmarshal(body, &raw)
@@ -806,9 +812,20 @@ func handleTMDBDetails(w http.ResponseWriter, r *http.Request) {
 
 	parseAndRespond := func(body []byte) {
 		var raw struct {
-			ID int; Title, Name, OriginalTitle, OriginalName, Overview, PosterPath, ReleaseDate, FirstAirDate string
-			Runtime int; VoteAverage float64 `json:"vote_average"`
-			Genres []struct{ Name string `json:"name"` } `json:"genres"`
+			ID            int     `json:"id"`
+			Title         string  `json:"title"`
+			Name          string  `json:"name"`
+			OriginalTitle string  `json:"original_title"`
+			OriginalName  string  `json:"original_name"`
+			Overview      string  `json:"overview"`
+			PosterPath    string  `json:"poster_path"`
+			ReleaseDate   string  `json:"release_date"`
+			FirstAirDate  string  `json:"first_air_date"`
+			Runtime       int     `json:"runtime"`
+			VoteAverage   float64 `json:"vote_average"`
+			Genres        []struct {
+				Name string `json:"name"`
+			} `json:"genres"`
 		}
 		json.Unmarshal(body, &raw)
 		title := raw.Title; if title == "" { title = raw.Name }; if title == "" { title = raw.OriginalTitle }
