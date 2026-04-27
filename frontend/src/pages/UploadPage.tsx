@@ -84,6 +84,7 @@ export default function UploadPage({ addLog, logs }: Props) {
   const processingRef = useRef(false)
   const queueRef = useRef(queue)
   queueRef.current = queue
+  const analyzingRef = useRef<Set<string>>(new Set())
   const logsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -110,8 +111,10 @@ export default function UploadPage({ addLog, logs }: Props) {
     if (valid.length === 0) return
     setQueue(q => {
       const existing = new Set(q.map(i => i.path))
-      const newItems = valid.filter(p => !existing.has(p)).map(makeItem)
-      if (newItems.length > 0) setSelectedId(newItems[0].id)
+      const toAdd = valid.filter(p => !existing.has(p))
+      if (toAdd.length === 0) return q
+      const newItems = toAdd.map(makeItem)
+      setSelectedId(newItems[0].id)
       return [...q, ...newItems]
     })
   }, [addLog])
@@ -209,7 +212,11 @@ export default function UploadPage({ addLog, logs }: Props) {
 
   useEffect(() => {
     const pending = queue.filter(i => i.status === 'pending' && !i.analyzed)
-    for (const item of pending) analyzeItem(item)
+    for (const item of pending) {
+      if (analyzingRef.current.has(item.id)) continue
+      analyzingRef.current.add(item.id)
+      analyzeItem(item).finally(() => analyzingRef.current.delete(item.id))
+    }
   }, [queue.length])
 
   // Traitement sequentiel
