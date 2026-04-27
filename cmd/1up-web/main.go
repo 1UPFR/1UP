@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/1UPFR/1UP/internal/api"
+	"github.com/1UPFR/1UP/internal/bdinfo"
 	"github.com/1UPFR/1UP/internal/binutil"
 	"github.com/1UPFR/1UP/internal/config"
 	"github.com/1UPFR/1UP/internal/relparse"
@@ -90,6 +91,8 @@ func main() {
 	mux.HandleFunc("/api/history/clear", handleHistoryClear)
 	mux.HandleFunc("/api/savemediainfo", handleSaveMediaInfo)
 	mux.HandleFunc("/api/browse", handleBrowse)
+	mux.HandleFunc("/api/find-bdinfo", handleFindBDInfo)
+	mux.HandleFunc("/api/parse-bdinfo", handleParseBDInfo)
 	mux.HandleFunc("/api/tmdb/search", handleTMDBSearch)
 	mux.HandleFunc("/api/tmdb/details", handleTMDBDetails)
 
@@ -194,6 +197,8 @@ const wailsShimJS = `
     HistoryStats: () => call('/api/history/stats'),
     HistoryDelete: (id) => call('/api/history/delete', {id}),
     HistoryClear: () => call('/api/history/clear', {}),
+    FindBDInfoFile: (path) => call('/api/find-bdinfo?path=' + encodeURIComponent(path)).then(r => r.path || ''),
+    ParseBDInfo: (path) => call('/api/parse-bdinfo?path=' + encodeURIComponent(path)),
     SetHistoryMediaInfo: () => {},
     SetHistoryTMDB: () => {},
   }}};
@@ -467,6 +472,29 @@ func handleConfigSave(w http.ResponseWriter, r *http.Request) {
 
 func handleVersion(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, map[string]string{"version": AppVersion})
+}
+
+func handleFindBDInfo(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		jsonError(w, "path requis", 400)
+		return
+	}
+	jsonResponse(w, map[string]string{"path": bdinfo.FindFile(path)})
+}
+
+func handleParseBDInfo(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		jsonError(w, "path requis", 400)
+		return
+	}
+	info, err := bdinfo.ParseFile(path)
+	if err != nil {
+		jsonError(w, err.Error(), 500)
+		return
+	}
+	jsonResponse(w, info)
 }
 
 func handleCheck(w http.ResponseWriter, r *http.Request) {
@@ -865,6 +893,11 @@ func handleProcessStart(w http.ResponseWriter, r *http.Request) {
 		ext := filepath.Ext(inputPath)
 		releaseName := strings.TrimSuffix(filepath.Base(inputPath), ext)
 
+		if err := relparse.ValidateTeam(releaseName); err != nil {
+			sendEvent("error", err.Error())
+			return
+		}
+
 		outputDir := cfg.OutputDir
 		if outputDir == "" {
 			outputDir = filepath.Dir(inputPath)
@@ -920,15 +953,28 @@ func handleProcessStart(w http.ResponseWriter, r *http.Request) {
 
 		isISO := strings.EqualFold(ext, ".iso")
 		apiResultStr := ""
-		if !isISO && cfg.API.Enabled && cfg.API.APIKey != "" {
-			sendEvent("status", "Upload API...")
-			jsonPath := filepath.Join(outputDir, releaseName+".json")
-			if _, err := os.Stat(jsonPath); err == nil {
-				uploadResult, err := api.Upload(&cfg.API, releaseName, result.NZBPath, jsonPath)
-				if err == nil {
-					j, _ := json.Marshal(uploadResult)
-					apiResultStr = string(j)
-					sendEvent("upload:result", apiResultStr)
+		if cfg.API.Enabled && cfg.API.APIKey != "" {
+			if isISO {
+				bdinfoPath := bdinfo.FindFile(inputPath)
+				if bdinfoPath != "" {
+					sendEvent("status", "Upload API (BDInfo)...")
+					uploadResult, err := api.UploadISO(&cfg.API, releaseName, result.NZBPath, bdinfoPath)
+					if err == nil {
+						j, _ := json.Marshal(uploadResult)
+						apiResultStr = string(j)
+						sendEvent("upload:result", apiResultStr)
+					}
+				}
+			} else {
+				sendEvent("status", "Upload API...")
+				jsonPath := filepath.Join(outputDir, releaseName+".json")
+				if _, err := os.Stat(jsonPath); err == nil {
+					uploadResult, err := api.Upload(&cfg.API, releaseName, result.NZBPath, jsonPath)
+					if err == nil {
+						j, _ := json.Marshal(uploadResult)
+						apiResultStr = string(j)
+						sendEvent("upload:result", apiResultStr)
+					}
 				}
 			}
 		}

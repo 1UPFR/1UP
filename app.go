@@ -342,7 +342,7 @@ func (a *App) ProcessFile(inputPath string, queueID string) error {
 	if a.cfg.API.Enabled && a.cfg.API.APIKey != "" {
 		if isISO {
 			// ISO : chercher un fichier BDInfo compagnon
-			bdinfoPath := a.FindBDInfoFile(inputPath)
+			bdinfoPath := bdinfo.FindFile(inputPath)
 			if bdinfoPath != "" {
 				emit("status", "Upload API (BDInfo)...")
 				uploadResult, err := api.UploadISO(&a.cfg.API, releaseName, result.NZBPath, bdinfoPath)
@@ -393,32 +393,8 @@ func (a *App) ProcessFile(inputPath string, queueID string) error {
 }
 
 // FindBDInfoFile cherche un fichier BDInfo compagnon a cote d'un ISO.
-// Cherche : meme nom avec .txt, ou fichier contenant "bdinfo" dans le meme dossier.
 func (a *App) FindBDInfoFile(isoPath string) string {
-	dir := filepath.Dir(isoPath)
-	base := strings.TrimSuffix(filepath.Base(isoPath), filepath.Ext(isoPath))
-
-	// 1. Meme nom avec extension .txt
-	txtPath := filepath.Join(dir, base+".txt")
-	if _, err := os.Stat(txtPath); err == nil {
-		return txtPath
-	}
-
-	// 2. Fichier contenant "bdinfo" dans le nom (meme dossier)
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return ""
-	}
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if strings.Contains(strings.ToLower(e.Name()), "bdinfo") {
-			return filepath.Join(dir, e.Name())
-		}
-	}
-
-	return ""
+	return bdinfo.FindFile(isoPath)
 }
 
 // ParseBDInfo parse un fichier BDInfo et retourne les infos extraites

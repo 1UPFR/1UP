@@ -4,10 +4,38 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+// FindFile cherche un fichier BDInfo compagnon a cote d'un ISO.
+// Cherche : meme nom avec .txt, ou fichier contenant "bdinfo" dans le meme dossier.
+func FindFile(isoPath string) string {
+	dir := filepath.Dir(isoPath)
+	base := strings.TrimSuffix(filepath.Base(isoPath), filepath.Ext(isoPath))
+
+	txtPath := filepath.Join(dir, base+".txt")
+	if _, err := os.Stat(txtPath); err == nil {
+		return txtPath
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if strings.Contains(strings.ToLower(e.Name()), "bdinfo") {
+			return filepath.Join(dir, e.Name())
+		}
+	}
+
+	return ""
+}
 
 type ParsedBDInfo struct {
 	Resolution        string `json:"resolution"`

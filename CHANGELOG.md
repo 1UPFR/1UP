@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.9
+
+### Corrections
+- Version Web : detection BDInfo et upload API pour les ISO (manquait les endpoints)
+- Version Web : validation de la team appliquee aussi cote serveur
+
 ## v1.3.8
 
 ### Corrections
